@@ -9,6 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Building2,
+  ClipboardList,
+  Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -17,10 +19,13 @@ interface NavItem {
   icon: React.ElementType;
   label: string;
   path: string;
+  badge?: number;
 }
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+  { icon: ClipboardList, label: 'My Tasks', path: '/my-tasks', badge: 4 },
+  { icon: Eye, label: 'Task Monitoring', path: '/admin/monitoring' },
   { icon: Users, label: 'Workflows', path: '/workflows' },
   { icon: UserPlus, label: 'Create Onboarding', path: '/create/onboarding' },
   { icon: UserMinus, label: 'Create Offboarding', path: '/create/offboarding' },
@@ -74,7 +79,16 @@ export function Sidebar() {
               )}
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && (
+                <span className="flex-1 flex items-center justify-between">
+                  <span className="truncate">{item.label}</span>
+                  {item.badge && (
+                    <span className="ml-2 px-1.5 py-0.5 text-xs font-medium rounded-full bg-accent text-accent-foreground">
+                      {item.badge}
+                    </span>
+                  )}
+                </span>
+              )}
             </button>
           );
         })}

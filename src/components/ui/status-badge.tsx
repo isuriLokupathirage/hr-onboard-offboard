@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { TaskStatus, WorkflowStatus, WorkflowType } from '@/types/workflow';
-import { Check, Clock, ArrowUpRight, ArrowDownRight, CheckCircle2, Loader2 } from 'lucide-react';
+import { Check, Clock, ArrowUpRight, ArrowDownRight, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 
 interface StatusBadgeProps {
   status: TaskStatus | WorkflowStatus;
@@ -9,21 +9,24 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const isDone = status === 'Done' || status === 'Completed';
+  const isNeedInfo = status === 'Need Information';
 
   return (
     <span
       className={cn(
         'status-badge',
-        isDone ? 'status-done' : 'status-pending',
+        isDone ? 'status-done' : isNeedInfo ? 'bg-info/15 text-info' : 'status-pending',
         className
       )}
     >
       {isDone ? (
         <Check className="w-3 h-3" />
+      ) : isNeedInfo ? (
+        <AlertCircle className="w-3 h-3" />
       ) : (
         <Clock className="w-3 h-3" />
       )}
-      {status}
+      {isNeedInfo ? 'Need Info' : status}
     </span>
   );
 }

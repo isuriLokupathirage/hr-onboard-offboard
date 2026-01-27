@@ -1,5 +1,5 @@
 export type Department = 'HR' | 'IT' | 'Finance';
-export type TaskStatus = 'Pending' | 'Done';
+export type TaskStatus = 'Pending' | 'Done' | 'Need Information';
 export type WorkflowType = 'Onboarding' | 'Offboarding';
 export type WorkflowStatus = 'In Progress' | 'Completed';
 

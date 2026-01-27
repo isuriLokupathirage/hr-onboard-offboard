@@ -7,6 +7,8 @@ import Index from "./pages/Index";
 import Workflows from "./pages/Workflows";
 import WorkflowDetail from "./pages/WorkflowDetail";
 import CreateWorkflow from "./pages/CreateWorkflow";
+import MyTasks from "./pages/MyTasks";
+import AdminMonitoring from "./pages/AdminMonitoring";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,6 +21,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/my-tasks" element={<MyTasks />} />
+          <Route path="/admin/monitoring" element={<AdminMonitoring />} />
           <Route path="/workflows" element={<Workflows />} />
           <Route path="/workflows/:id" element={<WorkflowDetail />} />
           <Route path="/create/:type" element={<CreateWorkflow />} />

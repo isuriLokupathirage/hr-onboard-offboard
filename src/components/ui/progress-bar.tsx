@@ -1,19 +1,21 @@
 import { cn } from '@/lib/utils';
 
-interface ProgressBarProps {
+export interface ProgressBarProps {
   value: number;
-  max: number;
+  max?: number;
   className?: string;
   showLabel?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'accent' | 'success' | 'warning';
 }
 
 export function ProgressBar({
   value,
-  max,
+  max = 100,
   className,
   showLabel = false,
   size = 'md',
+  variant = 'default',
 }: ProgressBarProps) {
   const percentage = max > 0 ? Math.round((value / max) * 100) : 0;
 
@@ -21,6 +23,13 @@ export function ProgressBar({
     sm: 'h-1',
     md: 'h-2',
     lg: 'h-3',
+  };
+
+  const variantClasses = {
+    default: 'bg-primary',
+    accent: 'bg-accent',
+    success: 'bg-success',
+    warning: 'bg-warning',
   };
 
   return (
@@ -31,9 +40,9 @@ export function ProgressBar({
           <span>{percentage}%</span>
         </div>
       )}
-      <div className={cn('progress-bar', sizeClasses[size])}>
+      <div className={cn('w-full rounded-full bg-muted overflow-hidden', sizeClasses[size])}>
         <div
-          className="progress-fill"
+          className={cn('h-full rounded-full transition-all duration-300', variantClasses[variant])}
           style={{ width: `${percentage}%` }}
         />
       </div>
