@@ -6,7 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Workflows from "./pages/Workflows";
 import WorkflowDetail from "./pages/WorkflowDetail";
-import CreateWorkflow from "./pages/CreateWorkflow";
+import Templates from "./pages/Templates";
+import CreateTemplate from "./pages/CreateTemplate";
+import StartProcess from "./pages/StartProcess";
 import MyTasks from "./pages/MyTasks";
 import AdminMonitoring from "./pages/AdminMonitoring";
 import NotFound from "./pages/NotFound";
@@ -25,9 +27,10 @@ const App = () => (
           <Route path="/admin/monitoring" element={<AdminMonitoring />} />
           <Route path="/workflows" element={<Workflows />} />
           <Route path="/workflows/:id" element={<WorkflowDetail />} />
-          <Route path="/create/:type" element={<CreateWorkflow />} />
-          <Route path="/clients" element={<Workflows />} />
-          <Route path="/settings" element={<Index />} />
+          <Route path="/templates" element={<Templates />} />
+          <Route path="/templates/create" element={<CreateTemplate />} />
+          <Route path="/templates/:id/edit" element={<CreateTemplate />} />
+          <Route path="/start/:type" element={<StartProcess />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

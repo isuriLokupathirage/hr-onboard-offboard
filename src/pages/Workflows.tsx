@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Plus, Filter, Search } from 'lucide-react';
+import { Plus, Search, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { WorkflowCard } from '@/components/workflow/WorkflowCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,6 +11,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { StatusBadge, WorkflowTypeBadge } from '@/components/ui/status-badge';
+import { ProgressBar } from '@/components/ui/progress-bar';
 import { mockWorkflows, clients } from '@/data/mockData';
 import { WorkflowType, WorkflowStatus } from '@/types/workflow';
 
@@ -34,7 +43,7 @@ export default function Workflows() {
   });
 
   return (
-    <AppLayout title="Workflows" subtitle="Manage all employee onboarding and offboarding">
+    <AppLayout title="Active Workflows" subtitle="Manage all employee onboarding and offboarding">
       <div className="space-y-6">
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -85,25 +94,86 @@ export default function Workflows() {
               </SelectContent>
             </Select>
 
-            <Button onClick={() => navigate('/create/onboarding')} className="gap-2 bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Button onClick={() => navigate('/start/onboarding')} className="gap-2 bg-accent hover:bg-accent/90 text-accent-foreground">
               <Plus className="w-4 h-4" />
               New Workflow
             </Button>
           </div>
         </div>
 
-        {/* Workflows Grid */}
-        {filteredWorkflows.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No workflows found matching your filters</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredWorkflows.map((workflow) => (
-              <WorkflowCard key={workflow.id} workflow={workflow} />
-            ))}
-          </div>
-        )}
+        {/* Workflows Table */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Employee</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Workflow Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Progress</TableHead>
+                <TableHead>Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredWorkflows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    No workflows found matching your filters
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredWorkflows.map((workflow) => {
+                  const totalTasks = workflow.stages.reduce((acc, stage) => acc + stage.tasks.length, 0);
+                  const completedTasks = workflow.stages.reduce(
+                    (acc, stage) => acc + stage.tasks.filter((t) => t.status === 'Done').length,
+                    0
+                  );
+                  const date = workflow.type === 'Onboarding' 
+                    ? workflow.employee.startDate 
+                    : workflow.employee.endDate;
+
+                  return (
+                    <TableRow 
+                      key={workflow.id} 
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/workflows/${workflow.id}`)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="w-4 h-4 text-primary" />
+                          </div>
+                          <div>
+                            <span className="font-medium">{workflow.employee.name}</span>
+                            <p className="text-xs text-muted-foreground">{workflow.employee.position}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{workflow.client.name}</TableCell>
+                      <TableCell>
+                        <WorkflowTypeBadge type={workflow.type} />
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={workflow.status} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <ProgressBar value={completedTasks} max={totalTasks} className="w-24" size="sm" />
+                          <span className="text-xs text-muted-foreground">
+                            {completedTasks}/{totalTasks}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {date && new Date(date).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </AppLayout>
   );

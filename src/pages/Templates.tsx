@@ -1,0 +1,164 @@
+import { useState } from 'react';
+import { Plus, Search, FileText, Copy, Trash2, Edit } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { WorkflowTypeBadge } from '@/components/ui/status-badge';
+import { workflowTemplates } from '@/data/mockData';
+import { WorkflowType } from '@/types/workflow';
+import { toast } from '@/hooks/use-toast';
+
+export default function Templates() {
+  const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<WorkflowType | 'all'>('all');
+
+  const filteredTemplates = workflowTemplates.filter((template) => {
+    const matchesSearch = template.name.toLowerCase().includes(search.toLowerCase());
+    const matchesType = typeFilter === 'all' || template.type === typeFilter;
+    return matchesSearch && matchesType;
+  });
+
+  const handleDuplicate = (templateId: string) => {
+    toast({
+      title: 'Template Duplicated',
+      description: 'A copy of the template has been created.',
+    });
+  };
+
+  const handleDelete = (templateId: string) => {
+    toast({
+      title: 'Template Deleted',
+      description: 'The template has been removed.',
+    });
+  };
+
+  return (
+    <AppLayout title="Workflow Templates" subtitle="Manage reusable workflow templates">
+      <div className="space-y-6">
+        {/* Actions Bar */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search templates..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as WorkflowType | 'all')}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="Onboarding">Onboarding</SelectItem>
+                <SelectItem value="Offboarding">Offboarding</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button 
+              onClick={() => navigate('/templates/create')} 
+              className="gap-2 bg-accent hover:bg-accent/90 text-accent-foreground"
+            >
+              <Plus className="w-4 h-4" />
+              New Template
+            </Button>
+          </div>
+        </div>
+
+        {/* Templates Table */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Template Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Stages</TableHead>
+                <TableHead>Total Tasks</TableHead>
+                <TableHead>Last Updated</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTemplates.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    No templates found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredTemplates.map((template) => {
+                  const totalTasks = template.stages.reduce((acc, s) => acc + s.tasks.length, 0);
+                  return (
+                    <TableRow key={template.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <FileText className="w-4 h-4 text-primary" />
+                          </div>
+                          <span className="font-medium">{template.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <WorkflowTypeBadge type={template.type} />
+                      </TableCell>
+                      <TableCell>{template.stages.length}</TableCell>
+                      <TableCell>{totalTasks}</TableCell>
+                      <TableCell>{new Date(template.updatedAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => navigate(`/templates/${template.id}/edit`)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDuplicate(template.id)}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(template.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </AppLayout>
+  );
+}

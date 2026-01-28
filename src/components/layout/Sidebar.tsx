@@ -5,12 +5,11 @@ import {
   Users,
   UserPlus,
   UserMinus,
-  Settings,
   ChevronLeft,
   ChevronRight,
-  Building2,
   ClipboardList,
   Eye,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,11 +25,10 @@ const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: ClipboardList, label: 'My Tasks', path: '/my-tasks', badge: 4 },
   { icon: Eye, label: 'Task Monitoring', path: '/admin/monitoring' },
-  { icon: Users, label: 'Workflows', path: '/workflows' },
-  { icon: UserPlus, label: 'Create Onboarding', path: '/create/onboarding' },
-  { icon: UserMinus, label: 'Create Offboarding', path: '/create/offboarding' },
-  { icon: Building2, label: 'Clients', path: '/clients' },
-  { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: Users, label: 'Active Workflows', path: '/workflows' },
+  { icon: FileText, label: 'Workflow Templates', path: '/templates' },
+  { icon: UserPlus, label: 'Start Onboarding', path: '/start/onboarding' },
+  { icon: UserMinus, label: 'Start Offboarding', path: '/start/offboarding' },
 ];
 
 export function Sidebar() {
