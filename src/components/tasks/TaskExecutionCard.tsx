@@ -37,6 +37,7 @@ export function TaskExecutionCard({ task, workflow, stage, onStatusChange }: Tas
   const [localStatus, setLocalStatus] = useState<TaskStatus>(task.status);
 
   const StatusIcon = statusConfig[localStatus].icon;
+  const isDone = localStatus === 'Done';
 
   const handleStatusChange = (newStatus: TaskStatus) => {
     setLocalStatus(newStatus);
@@ -139,8 +140,10 @@ export function TaskExecutionCard({ task, workflow, stage, onStatusChange }: Tas
             variant={localStatus === 'Pending' ? 'default' : 'outline'}
             size="sm"
             onClick={() => handleStatusChange('Pending')}
+            disabled={isDone}
             className={cn(
-              localStatus === 'Pending' && 'bg-warning hover:bg-warning/90 text-warning-foreground'
+              localStatus === 'Pending' && 'bg-warning hover:bg-warning/90 text-warning-foreground',
+              isDone && 'opacity-50 cursor-not-allowed'
             )}
           >
             <Clock className="w-4 h-4 mr-1" />
@@ -150,11 +153,15 @@ export function TaskExecutionCard({ task, workflow, stage, onStatusChange }: Tas
             variant={localStatus === 'Need Information' ? 'default' : 'outline'}
             size="sm"
             onClick={() => {
-              setLocalStatus('Need Information');
-              setIsExpanded(true);
+              if (!isDone) {
+                setLocalStatus('Need Information');
+                setIsExpanded(true);
+              }
             }}
+            disabled={isDone}
             className={cn(
-              localStatus === 'Need Information' && 'bg-info hover:bg-info/90 text-info-foreground'
+              localStatus === 'Need Information' && 'bg-info hover:bg-info/90 text-info-foreground',
+              isDone && 'opacity-50 cursor-not-allowed'
             )}
           >
             <AlertCircle className="w-4 h-4 mr-1" />

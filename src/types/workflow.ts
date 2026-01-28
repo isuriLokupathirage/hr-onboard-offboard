@@ -51,6 +51,28 @@ export interface Workflow {
   updatedAt: string;
 }
 
+export interface TemplateTask {
+  id: string;
+  name: string;
+  department: Department;
+}
+
+export interface TemplateStage {
+  id: string;
+  name: string;
+  order: number;
+  tasks: TemplateTask[];
+}
+
+export interface WorkflowTemplate {
+  id: string;
+  name: string;
+  type: WorkflowType;
+  stages: TemplateStage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Notification {
   id: string;
   type: 'task_assigned' | 'task_completed' | 'workflow_completed';

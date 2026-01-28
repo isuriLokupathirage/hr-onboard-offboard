@@ -8,7 +8,6 @@ import { StatusBadge, WorkflowTypeBadge } from '@/components/ui/status-badge';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Button } from '@/components/ui/button';
 import { mockWorkflows } from '@/data/mockData';
-import { Task } from '@/types/workflow';
 
 type ViewMode = 'kanban' | 'accordion';
 
@@ -19,7 +18,7 @@ export default function WorkflowDetail() {
 
   const workflow = mockWorkflows.find((w) => w.id === id);
   
-  const [stages, setStages] = useState(workflow?.stages || []);
+  const stages = workflow?.stages || [];
 
   const totalTasks = stages.reduce((acc, stage) => acc + stage.tasks.length, 0);
   const completedTasks = stages.reduce(
@@ -37,17 +36,6 @@ export default function WorkflowDetail() {
       </AppLayout>
     );
   }
-
-  const handleTaskStatusChange = (taskId: string, status: Task['status']) => {
-    setStages((prev) =>
-      prev.map((stage) => ({
-        ...stage,
-        tasks: stage.tasks.map((task) =>
-          task.id === taskId ? { ...task, status } : task
-        ),
-      }))
-    );
-  };
 
   const dateLabel = workflow.type === 'Onboarding' ? 'Start Date' : 'End Date';
   const date = workflow.type === 'Onboarding' 
@@ -129,7 +117,10 @@ export default function WorkflowDetail() {
 
         {/* View Toggle */}
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-foreground">Tasks by Stage</h3>
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">Tasks by Stage</h3>
+            <p className="text-sm text-muted-foreground">View only — task status updates are managed from My Tasks</p>
+          </div>
           <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
             <Button
               variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
@@ -152,7 +143,7 @@ export default function WorkflowDetail() {
           </div>
         </div>
 
-        {/* Stages */}
+        {/* Stages - View Only (no onTaskStatusChange) */}
         {viewMode === 'kanban' ? (
           <div className="flex gap-4 overflow-x-auto pb-4">
             {stages.map((stage) => (
@@ -160,7 +151,6 @@ export default function WorkflowDetail() {
                 key={stage.id}
                 stage={stage}
                 variant="kanban"
-                onTaskStatusChange={handleTaskStatusChange}
               />
             ))}
           </div>
@@ -171,7 +161,6 @@ export default function WorkflowDetail() {
                 key={stage.id}
                 stage={stage}
                 variant="accordion"
-                onTaskStatusChange={handleTaskStatusChange}
               />
             ))}
           </div>

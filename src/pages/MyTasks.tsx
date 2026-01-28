@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Filter, Search } from 'lucide-react';
+import { Filter, Search, LayoutGrid, List } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { mockWorkflows, currentUser } from '@/data/mockData';
 import { Task, Stage, Workflow, TaskStatus } from '@/types/workflow';
@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TaskExecutionCard } from '@/components/tasks/TaskExecutionCard';
+import { TaskKanbanCard } from '@/components/tasks/TaskKanbanCard';
 
 interface TaskWithContext {
   task: Task;
@@ -20,11 +21,14 @@ interface TaskWithContext {
   stage: Stage;
 }
 
+type ViewMode = 'list' | 'kanban';
+
 export default function MyTasks() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   // Get all tasks assigned to the current user
   const myTasks: TaskWithContext[] = useMemo(() => {
@@ -55,6 +59,15 @@ export default function MyTasks() {
       return matchesSearch && matchesStatus && matchesType && matchesClient;
     });
   }, [myTasks, searchQuery, statusFilter, typeFilter, clientFilter]);
+
+  // Group tasks by status for kanban view
+  const tasksByStatus = useMemo(() => {
+    return {
+      Pending: filteredTasks.filter((t) => t.task.status === 'Pending'),
+      'Need Information': filteredTasks.filter((t) => t.task.status === 'Need Information'),
+      Done: filteredTasks.filter((t) => t.task.status === 'Done'),
+    };
+  }, [filteredTasks]);
 
   const handleStatusChange = (taskId: string, newStatus: TaskStatus, note?: string) => {
     // In a real app, this would update the backend
@@ -99,7 +112,7 @@ export default function MyTasks() {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Filters and View Toggle */}
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -110,7 +123,7 @@ export default function MyTasks() {
               className="pl-10"
             />
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[160px]">
                 <Filter className="w-4 h-4 mr-2" />
@@ -148,27 +161,113 @@ export default function MyTasks() {
                 ))}
               </SelectContent>
             </Select>
+
+            {/* View Toggle */}
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1 ml-auto">
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="gap-1"
+              >
+                <List className="w-4 h-4" />
+                List
+              </Button>
+              <Button
+                variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('kanban')}
+                className="gap-1"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Kanban
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Task List */}
-        <div className="space-y-4">
-          {filteredTasks.length === 0 ? (
-            <div className="bg-card border border-border rounded-lg p-12 text-center">
-              <p className="text-muted-foreground">No tasks match your filters</p>
+        {/* Task Views */}
+        {viewMode === 'list' ? (
+          <div className="space-y-4">
+            {filteredTasks.length === 0 ? (
+              <div className="bg-card border border-border rounded-lg p-12 text-center">
+                <p className="text-muted-foreground">No tasks match your filters</p>
+              </div>
+            ) : (
+              filteredTasks.map(({ task, workflow, stage }) => (
+                <TaskExecutionCard
+                  key={task.id}
+                  task={task}
+                  workflow={workflow}
+                  stage={stage}
+                  onStatusChange={handleStatusChange}
+                />
+              ))
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Pending Column */}
+            <div className="bg-muted/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-3 h-3 rounded-full bg-warning" />
+                <h3 className="font-semibold text-foreground">Pending</h3>
+                <span className="text-sm text-muted-foreground">({tasksByStatus.Pending.length})</span>
+              </div>
+              <div className="space-y-3">
+                {tasksByStatus.Pending.map(({ task, workflow, stage }) => (
+                  <TaskKanbanCard
+                    key={task.id}
+                    task={task}
+                    workflow={workflow}
+                    stage={stage}
+                    onStatusChange={handleStatusChange}
+                  />
+                ))}
+              </div>
             </div>
-          ) : (
-            filteredTasks.map(({ task, workflow, stage }) => (
-              <TaskExecutionCard
-                key={task.id}
-                task={task}
-                workflow={workflow}
-                stage={stage}
-                onStatusChange={handleStatusChange}
-              />
-            ))
-          )}
-        </div>
+
+            {/* Need Information Column */}
+            <div className="bg-muted/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-3 h-3 rounded-full bg-info" />
+                <h3 className="font-semibold text-foreground">Need Information</h3>
+                <span className="text-sm text-muted-foreground">({tasksByStatus['Need Information'].length})</span>
+              </div>
+              <div className="space-y-3">
+                {tasksByStatus['Need Information'].map(({ task, workflow, stage }) => (
+                  <TaskKanbanCard
+                    key={task.id}
+                    task={task}
+                    workflow={workflow}
+                    stage={stage}
+                    onStatusChange={handleStatusChange}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Done Column */}
+            <div className="bg-muted/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-3 h-3 rounded-full bg-success" />
+                <h3 className="font-semibold text-foreground">Done</h3>
+                <span className="text-sm text-muted-foreground">({tasksByStatus.Done.length})</span>
+              </div>
+              <div className="space-y-3">
+                {tasksByStatus.Done.map(({ task, workflow, stage }) => (
+                  <TaskKanbanCard
+                    key={task.id}
+                    task={task}
+                    workflow={workflow}
+                    stage={stage}
+                    onStatusChange={handleStatusChange}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppLayout>
   );
