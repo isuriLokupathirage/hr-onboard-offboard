@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search, FileText, Copy, Trash2, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -20,29 +20,33 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { WorkflowTypeBadge } from '@/components/ui/status-badge';
-import { workflowTemplates } from '@/data/mockData';
-import { WorkflowType } from '@/types/workflow';
+import { WorkflowType, WorkflowTemplate } from '@/types/workflow';
 import { toast } from '@/hooks/use-toast';
+import { getTemplates, deleteTemplate } from '@/lib/storage';
 
 export default function Templates() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<WorkflowType | 'all'>('all');
+  const [templates, setTemplates] = useState<WorkflowTemplate[]>([]);
 
-  const filteredTemplates = workflowTemplates.filter((template) => {
+  useEffect(() => {
+    setTemplates(getTemplates());
+  }, []);
+
+  const filteredTemplates = templates.filter((template) => {
     const matchesSearch = template.name.toLowerCase().includes(search.toLowerCase());
     const matchesType = typeFilter === 'all' || template.type === typeFilter;
     return matchesSearch && matchesType;
   });
 
   const handleDuplicate = (templateId: string) => {
-    toast({
-      title: 'Template Duplicated',
-      description: 'A copy of the template has been created.',
-    });
+    navigate(`/templates/create?duplicate=${templateId}`);
   };
 
   const handleDelete = (templateId: string) => {
+    deleteTemplate(templateId);
+    setTemplates(getTemplates());
     toast({
       title: 'Template Deleted',
       description: 'The template has been removed.',

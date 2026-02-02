@@ -30,32 +30,23 @@ export function StatCard({ title, value, icon, trend, variant = 'default' }: Sta
   return (
     <div
       className={cn(
-        'rounded-xl border p-5 transition-all hover:shadow-card-hover',
-        variantStyles[variant]
+        'rounded-xl border border-border bg-white p-6 transition-all hover:shadow-card-hover flex items-center justify-between',
       )}
     >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-3xl font-bold text-foreground mt-2">{value}</p>
-          {trend && (
-            <p className="text-sm text-muted-foreground mt-2">
-              <span
-                className={cn(
-                  'font-medium',
-                  trend.value >= 0 ? 'text-success' : 'text-destructive'
-                )}
-              >
-                {trend.value >= 0 ? '+' : ''}
-                {trend.value}%
-              </span>{' '}
-              {trend.label}
-            </p>
-          )}
-        </div>
-        <div className={cn('w-12 h-12 rounded-lg flex items-center justify-center', iconStyles[variant])}>
-          {icon}
-        </div>
+      <div>
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        <p className="text-3xl font-bold text-foreground mt-1">{value}</p>
+        <p className="text-xs text-muted-foreground mt-2">Total {title.toLowerCase()}</p>
+      </div>
+      <div className={cn(
+        'w-12 h-12 rounded-xl flex items-center justify-center', 
+        variantStyles[variant] === 'default' ? 'bg-muted/50 text-muted-foreground' : 
+        variant === 'accent' ? 'bg-blue-100 text-blue-600' :
+        variant === 'success' ? 'bg-green-100 text-green-600' :
+        variant === 'warning' ? 'bg-orange-100 text-orange-600' :
+        'bg-purple-100 text-purple-600'
+      )}>
+        {icon}
       </div>
     </div>
   );

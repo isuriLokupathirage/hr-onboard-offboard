@@ -11,6 +11,9 @@ import CreateTemplate from "./pages/CreateTemplate";
 import StartProcess from "./pages/StartProcess";
 import MyTasks from "./pages/MyTasks";
 import AdminMonitoring from "./pages/AdminMonitoring";
+import EmployeeDirectory from "./pages/EmployeeDirectory";
+import EmployeeForm from "./pages/EmployeeForm";
+import EmployeeDetail from "./pages/EmployeeDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +28,10 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/my-tasks" element={<MyTasks />} />
           <Route path="/admin/monitoring" element={<AdminMonitoring />} />
+          <Route path="/admin/directory" element={<EmployeeDirectory />} />
+          <Route path="/admin/directory/new" element={<EmployeeForm />} />
+          <Route path="/admin/directory/:id/edit" element={<EmployeeForm />} />
+          <Route path="/admin/directory/:id" element={<EmployeeDetail />} />
           <Route path="/workflows" element={<Workflows />} />
           <Route path="/workflows/:id" element={<WorkflowDetail />} />
           <Route path="/templates" element={<Templates />} />

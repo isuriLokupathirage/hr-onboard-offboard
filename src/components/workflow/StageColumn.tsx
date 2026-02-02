@@ -11,6 +11,7 @@ interface StageColumnProps {
   onTaskStatusChange?: (taskId: string, status: Task['status']) => void;
   onAddTask?: (stageId: string) => void;
   variant?: 'kanban' | 'accordion';
+  readOnly?: boolean;
 }
 
 export function StageColumn({
@@ -18,6 +19,7 @@ export function StageColumn({
   onTaskStatusChange,
   onAddTask,
   variant = 'kanban',
+  readOnly,
 }: StageColumnProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const completedTasks = stage.tasks.filter((t) => t.status === 'Done').length;
@@ -72,17 +74,20 @@ export function StageColumn({
                 key={task.id}
                 task={task}
                 onStatusChange={onTaskStatusChange}
+                readOnly={readOnly}
               />
             ))}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onAddTask?.(stage.id)}
-              className="w-full justify-start text-muted-foreground hover:text-foreground"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Task
-            </Button>
+            {!readOnly && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onAddTask?.(stage.id)}
+                className="w-full justify-start text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Task
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -90,41 +95,41 @@ export function StageColumn({
   }
 
   return (
-    <div className="stage-card flex flex-col h-full min-w-[320px] max-w-[360px] animate-fade-in">
+    <div className="stage-card flex flex-col h-full w-full animate-fade-in border-none shadow-none bg-transparent">
       {/* Header */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold text-foreground">{stage.name}</h3>
-          <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-            {completedTasks}/{totalTasks}
-          </span>
-        </div>
-        <ProgressBar value={completedTasks} max={totalTasks} size="sm" />
+      <div className="px-1 py-3 mb-2 flex items-center justify-between border-b-2 border-primary/20">
+        <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">{stage.name}</h3>
+        <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+          {completedTasks}/{totalTasks}
+        </span>
       </div>
 
       {/* Tasks */}
-      <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+      <div className="flex-1 space-y-3 overflow-y-auto">
         {stage.tasks.map((task) => (
           <TaskCard
             key={task.id}
             task={task}
             onStatusChange={onTaskStatusChange}
+            readOnly={readOnly}
           />
         ))}
       </div>
 
       {/* Add Task */}
-      <div className="p-4 border-t border-border">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onAddTask?.(stage.id)}
-          className="w-full justify-start text-muted-foreground hover:text-foreground"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Task
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="p-4 border-t border-border">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onAddTask?.(stage.id)}
+            className="w-full justify-start text-muted-foreground hover:text-foreground"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Task
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

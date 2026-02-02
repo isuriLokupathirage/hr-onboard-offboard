@@ -21,14 +21,38 @@ interface NavItem {
   badge?: number;
 }
 
-const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-  { icon: ClipboardList, label: 'My Tasks', path: '/my-tasks', badge: 4 },
-  { icon: Eye, label: 'Task Monitoring', path: '/admin/monitoring' },
-  { icon: Users, label: 'Active Workflows', path: '/workflows' },
-  { icon: FileText, label: 'Workflow Templates', path: '/templates' },
-  { icon: UserPlus, label: 'Start Onboarding', path: '/start/onboarding' },
-  { icon: UserMinus, label: 'Start Offboarding', path: '/start/offboarding' },
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
+  {
+    title: 'General',
+    items: [
+      { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+      { icon: ClipboardList, label: 'My Tasks', path: '/my-tasks', badge: 4 },
+    ]
+  },
+  {
+    title: 'Transitions',
+    items: [
+      { icon: UserPlus, label: 'Start Process', path: '/start/onboarding' },
+    ]
+  },
+  {
+    title: 'Organization',
+    items: [
+      { icon: Eye, label: 'Task Monitoring', path: '/admin/monitoring' },
+      { icon: FileText, label: 'Workflow Templates', path: '/templates' },
+    ]
+  },
+  {
+    title: 'Employee Management',
+    items: [
+      { icon: Users, label: 'All Employees', path: '/admin/directory' },
+    ]
+  }
 ];
 
 export function Sidebar() {
@@ -39,7 +63,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'h-screen bg-sidebar flex flex-col transition-all duration-300 border-r border-sidebar-border',
+        'h-full bg-sidebar flex flex-col transition-all duration-300 border-r border-sidebar-border',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
@@ -64,32 +88,41 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-3 space-y-1">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className={cn(
-                'nav-item w-full',
-                isActive && 'nav-item-active'
-              )}
-            >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              {!collapsed && (
-                <span className="flex-1 flex items-center justify-between">
-                  <span className="truncate">{item.label}</span>
-                  {item.badge && (
-                    <span className="ml-2 px-1.5 py-0.5 text-xs font-medium rounded-full bg-accent text-accent-foreground">
-                      {item.badge}
+      <nav className="flex-1 py-4 px-3 space-y-6 overflow-y-auto">
+        {navSections.map((section) => (
+          <div key={section.title} className="space-y-1">
+            {!collapsed && (
+              <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-sidebar-muted mb-2">
+                {section.title}
+              </p>
+            )}
+            {section.items.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className={cn(
+                    'nav-item w-full',
+                    isActive && 'nav-item-active'
+                  )}
+                >
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  {!collapsed && (
+                    <span className="flex-1 flex items-center justify-between">
+                      <span className="truncate text-sm">{item.label}</span>
+                      {item.badge && (
+                        <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-accent text-accent-foreground">
+                          {item.badge}
+                        </span>
+                      )}
                     </span>
                   )}
-                </span>
-              )}
-            </button>
-          );
-        })}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* User Section */}

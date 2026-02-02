@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Plus, X, GripVertical, Check, FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Plus, X, GripVertical, Check, FileText, Calendar, Flag } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,16 +12,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { users, onboardingStageTemplates, offboardingStageTemplates, workflowTemplates } from '@/data/mockData';
-import { WorkflowType, Department } from '@/types/workflow';
+import { users, clients, onboardingStageTemplates, offboardingStageTemplates } from '@/data/mockData';
+import { WorkflowType, Department, WorkflowAction, Priority } from '@/types/workflow';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
+import { getTemplates, updateTemplate, getTemplateById } from '@/lib/storage';
 
 interface NewTask {
   id: string;
   name: string;
   department: Department;
   assignedToId: string;
+  actionType?: WorkflowAction;
+  priority?: Priority;
+  requiredDate?: string;
 }
 
 interface NewStage {
@@ -33,14 +40,50 @@ interface NewStage {
 
 export default function CreateTemplate() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const duplicateId = searchParams.get('duplicate');
+  const isEditing = !!id;
 
   const [step, setStep] = useState(1);
   const [templateName, setTemplateName] = useState('');
+  const [clientId, setClientId] = useState('');
   const [workflowType, setWorkflowType] = useState<WorkflowType | ''>('');
   const [copyFromTemplate, setCopyFromTemplate] = useState<string>('');
   const [stages, setStages] = useState<NewStage[]>([]);
+  const [templateNotFound, setTemplateNotFound] = useState(false);
 
-  const availableTemplates = workflowTemplates.filter(
+  useEffect(() => {
+    const targetId = id || duplicateId;
+    if (targetId) {
+      const template = getTemplateById(targetId);
+      if (template) {
+        setTemplateName(isEditing ? template.name : `${template.name} Copy`);
+        setWorkflowType(template.type);
+        setClientId(template.client.id);
+        setStages(
+          template.stages.map((s, i) => ({
+            id: s.id,
+            name: s.name,
+            order: s.order,
+            tasks: s.tasks.map((t, j) => ({
+              id: t.id,
+              name: t.name,
+              department: t.department,
+              assignedToId: 'unassigned',
+              actionType: t.actionType,
+              priority: t.priority,
+              requiredDate: t.requiredDate,
+            })),
+          }))
+        );
+      } else {
+        setTemplateNotFound(true);
+      }
+    }
+  }, [id, duplicateId, isEditing]);
+
+  const availableTemplates = getTemplates().filter(
     (t) => t.type === workflowType
   );
 
@@ -49,252 +92,331 @@ export default function CreateTemplate() {
     setCopyFromTemplate('');
     const templates = type === 'Onboarding' ? onboardingStageTemplates : offboardingStageTemplates;
     setStages(
-      templates.map((t, i) => ({
-        id: `stage-${i}`,
+      templates.map((t: NewStage, i: number) => ({
+        id: `stage-${Date.now()}-${i}`,
         name: t.name,
-        order: t.order,
-        tasks: [],
+        order: i + 1,
+        tasks: t.tasks.map((task: NewTask, j: number) => ({
+          id: `task-${Date.now()}-${i}-${j}`,
+          name: task.name,
+          department: task.department,
+          assignedToId: 'unassigned',
+          actionType: task.actionType,
+          priority: 'Medium',
+          requiredDate: '',
+        })),
       }))
     );
   };
 
-  const handleCopyFromTemplate = (templateId: string) => {
-    setCopyFromTemplate(templateId);
-    const template = workflowTemplates.find((t) => t.id === templateId);
+  const handleCopyTemplate = (templateId: string) => {
+    const template = getTemplateById(templateId);
     if (template) {
       setStages(
         template.stages.map((s, i) => ({
-          id: `stage-${i}`,
+          id: `stage-${Date.now()}-${i}`,
           name: s.name,
-          order: s.order,
+          order: i + 1,
           tasks: s.tasks.map((t, j) => ({
-            id: `task-${i}-${j}`,
+            id: `task-${Date.now()}-${i}-${j}`,
             name: t.name,
             department: t.department,
-            assignedToId: '',
+            assignedToId: 'unassigned',
+            actionType: t.actionType,
+            priority: t.priority,
+            requiredDate: t.requiredDate,
           })),
         }))
       );
     }
   };
 
-  const addTask = (stageId: string) => {
-    setStages((prev) =>
-      prev.map((stage) =>
-        stage.id === stageId
-          ? {
-              ...stage,
-              tasks: [
-                ...stage.tasks,
-                {
-                  id: `task-${Date.now()}`,
-                  name: '',
-                  department: 'HR' as Department,
-                  assignedToId: '',
-                },
-              ],
-            }
-          : stage
-      )
-    );
-  };
-
-  const updateTask = (stageId: string, taskId: string, updates: Partial<NewTask>) => {
-    setStages((prev) =>
-      prev.map((stage) =>
-        stage.id === stageId
-          ? {
-              ...stage,
-              tasks: stage.tasks.map((task) =>
-                task.id === taskId ? { ...task, ...updates } : task
-              ),
-            }
-          : stage
-      )
-    );
-  };
-
-  const removeTask = (stageId: string, taskId: string) => {
-    setStages((prev) =>
-      prev.map((stage) =>
-        stage.id === stageId
-          ? { ...stage, tasks: stage.tasks.filter((t) => t.id !== taskId) }
-          : stage
-      )
-    );
-  };
-
   const addStage = () => {
-    setStages((prev) => [
-      ...prev,
-      {
-        id: `stage-${Date.now()}`,
-        name: '',
-        order: prev.length + 1,
-        tasks: [],
-      },
-    ]);
+    const newStage: NewStage = {
+      id: `stage-${Date.now()}-${stages.length}`,
+      name: `Stage ${stages.length + 1}`,
+      order: stages.length + 1,
+      tasks: [],
+    };
+    setStages([...stages, newStage]);
   };
 
   const removeStage = (stageId: string) => {
-    setStages((prev) => prev.filter((s) => s.id !== stageId));
+    setStages(stages.filter(stage => stage.id !== stageId));
   };
 
-  const updateStageName = (stageId: string, name: string) => {
-    setStages((prev) =>
-      prev.map((stage) => (stage.id === stageId ? { ...stage, name } : stage))
-    );
+  const updateStage = (stageId: string, updates: Partial<NewStage>) => {
+    setStages(stages.map(stage => 
+      stage.id === stageId ? { ...stage, ...updates } : stage
+    ));
   };
 
-  const canProceedStep1 = templateName && workflowType;
-  const canProceedStep2 = stages.every((s) => s.name) && stages.some((s) => s.tasks.length > 0);
+  const addTask = (stageId: string) => {
+    const stage = stages.find(s => s.id === stageId);
+    if (!stage) return;
+
+    const newTask: NewTask = {
+      id: `task-${stageId}-${Date.now()}`,
+      name: '',
+      department: 'HR',
+      assignedToId: 'unassigned',
+      priority: 'Medium',
+      requiredDate: '',
+    };
+
+    setStages(stages.map(stage => 
+      stage.id === stageId 
+        ? { ...stage, tasks: [...stage.tasks, newTask] }
+        : stage
+    ));
+  };
+
+  const removeTask = (stageId: string, taskId: string) => {
+    setStages(stages.map(stage => 
+      stage.id === stageId 
+        ? { ...stage, tasks: stage.tasks.filter(task => task.id !== taskId) }
+        : stage
+    ));
+  };
+
+  const updateTask = (stageId: string, taskId: string, updates: Partial<NewTask>) => {
+    setStages(stages.map(stage => 
+      stage.id === stageId 
+        ? { 
+            ...stage, 
+            tasks: stage.tasks.map(task => 
+              task.id === taskId ? { ...task, ...updates } : task
+            )
+          }
+        : stage
+    ));
+  };
+
+  const canProceedStep1 = templateName.trim() !== '' && clientId !== '' && workflowType !== '';
+  const canProceedStep2 = stages.length > 0 && stages.every(s => s.tasks.length > 0);
 
   const handleSubmit = () => {
+    if (!canProceedStep2 || !templateName.trim() || !clientId || !workflowType) {
+      toast({
+        title: 'Incomplete Template',
+        description: 'Please fill in all required fields and add at least one stage with tasks.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const client = clients.find(c => c.id === clientId);
+    if (!client) {
+      toast({
+        title: 'Invalid Client',
+        description: 'Selected client not found.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Prepare the template data with all required fields
+    const templateData = {
+      id: isEditing ? id! : `template-${Date.now()}`,
+      name: templateName.trim(),
+      type: workflowType as WorkflowType,
+      client,
+      stages: stages.map((stage, index) => ({
+        id: stage.id,
+        name: stage.name,
+        order: index + 1,
+        tasks: stage.tasks.map(task => ({
+          id: task.id,
+          name: task.name,
+          department: task.department,
+          assignedToId: task.assignedToId,
+          actionType: task.actionType,
+          priority: task.priority || 'Medium',
+          requiredDate: task.requiredDate,
+          status: 'Not Started' as const,
+          dueDate: null, // This is specific to workflow instances
+          completedAt: null,
+          comments: [],
+        })),
+      })),
+    };
+
+    // Use updateTemplate which handles both creation and updates
+    updateTemplate(templateData);
+    
     toast({
-      title: 'Template Created',
-      description: `${templateName} template has been created successfully.`,
+      title: isEditing ? 'Template Updated' : 'Template Created',
+      description: isEditing 
+        ? 'Workflow template has been updated successfully.' 
+        : 'New workflow template has been created successfully.',
     });
+
     navigate('/templates');
   };
 
+  if (templateNotFound) {
+    return (
+      <AppLayout title="Template Not Found">
+        <div className="max-w-2xl mx-auto py-20 text-center">
+          <h2 className="text-2xl font-bold mb-4">Template Not Found</h2>
+          <p className="text-muted-foreground mb-6">The requested workflow template does not exist or is corrupted.</p>
+          <Button variant="outline" onClick={() => navigate('/templates')}>Back to Templates</Button>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout
-      title="Create Workflow Template"
+      title={isEditing ? "Edit Workflow Template" : "Create Workflow Template"}
       subtitle="Define a reusable workflow template"
     >
       <div className="max-w-4xl mx-auto">
-        {/* Back Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/templates')}
-          className="gap-2 mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Button>
-
-        {/* Step Indicator */}
-        <div className="flex items-center gap-4 mb-8">
+        {/* Stepper */}
+        <div className="flex items-center justify-between mb-8">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center">
               <div
                 className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors',
-                  s === step
+                  'w-8 h-8 rounded-full flex items-center justify-center font-medium',
+                  step >= s
                     ? 'bg-accent text-accent-foreground'
-                    : s < step
-                    ? 'bg-success text-success-foreground'
                     : 'bg-muted text-muted-foreground'
                 )}
               >
-                {s < step ? <Check className="w-4 h-4" /> : s}
+                {s}
               </div>
-              <span className={cn('ml-2 text-sm font-medium', s === step ? 'text-foreground' : 'text-muted-foreground')}>
-                {s === 1 ? 'Template Info' : s === 2 ? 'Define Stages' : 'Review'}
-              </span>
-              {s < 3 && <div className="w-12 h-px bg-border mx-4" />}
+              <div className="ml-2 hidden sm:block">
+                <div className="text-sm font-medium">
+                  {s === 1 && 'Basic Info'}
+                  {s === 2 && 'Stages & Tasks'}
+                  {s === 3 && 'Review'}
+                </div>
+              </div>
+              {s < 3 && (
+                <div
+                  className={cn(
+                    'w-12 h-0.5 mx-4',
+                    step > s ? 'bg-accent' : 'bg-muted'
+                  )}
+                />
+              )}
             </div>
           ))}
         </div>
 
-        {/* Step 1: Template Info */}
+        {/* Step 1: Basic Info */}
         {step === 1 && (
-          <div className="bg-card border border-border rounded-xl p-6 space-y-6 animate-fade-in">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">Template Information</h2>
-              <p className="text-sm text-muted-foreground">Define the template name and type</p>
-            </div>
+          <div className="space-y-6 animate-fade-in">
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-foreground mb-6">Template Information</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="templateName">Template Name *</Label>
+                  <Input
+                    id="templateName"
+                    placeholder="e.g., Standard Employee Onboarding"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                  />
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label>Template Name</Label>
-                <Input
-                  placeholder="e.g., Standard IT Onboarding"
-                  value={templateName}
-                  onChange={(e) => setTemplateName(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Workflow Type *</Label>
-                <Select value={workflowType} onValueChange={(v) => handleTypeChange(v as WorkflowType)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Onboarding">Onboarding</SelectItem>
-                    <SelectItem value="Offboarding">Offboarding</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {workflowType && availableTemplates.length > 0 && (
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Copy from existing template (optional)</Label>
-                  <Select value={copyFromTemplate} onValueChange={handleCopyFromTemplate}>
+                <div>
+                  <Label htmlFor="client">Client *</Label>
+                  <Select value={clientId} onValueChange={setClientId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Start from scratch or copy..." />
+                      <SelectValue placeholder="Select a client" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="scratch">Start from scratch</SelectItem>
-                      {availableTemplates.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name}
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-              )}
+
+                <div>
+                  <Label htmlFor="workflowType">Workflow Type *</Label>
+                  <Select 
+                    value={workflowType} 
+                    onValueChange={(value: WorkflowType) => handleTypeChange(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select workflow type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Onboarding">Onboarding</SelectItem>
+                      <SelectItem value="Offboarding">Offboarding</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {workflowType && (
+                  <div>
+                    <Label htmlFor="copyTemplate">Copy from existing template (optional)</Label>
+                    <Select 
+                      value={copyFromTemplate} 
+                      onValueChange={(value) => {
+                        setCopyFromTemplate(value);
+                        if (value) handleCopyTemplate(value);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select template to copy from" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableTemplates.map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            {template.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-end">
               <Button
                 onClick={() => setStep(2)}
                 disabled={!canProceedStep1}
                 className="gap-2 bg-accent hover:bg-accent/90 text-accent-foreground"
               >
-                Next: Define Stages
+                Continue to Stages & Tasks
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 2: Define Stages */}
+        {/* Step 2: Stages & Tasks */}
         {step === 2 && (
           <div className="space-y-6 animate-fade-in">
             <div className="bg-card border border-border rounded-xl p-6">
               <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Define Stages & Tasks</h2>
-                  <p className="text-sm text-muted-foreground">Add tasks to each stage of the workflow</p>
-                </div>
-                <Button variant="outline" size="sm" onClick={addStage} className="gap-2">
+                <h2 className="text-lg font-semibold text-foreground">Stages & Tasks</h2>
+                <Button variant="outline" onClick={addStage} className="gap-2">
                   <Plus className="w-4 h-4" />
                   Add Stage
                 </Button>
               </div>
 
-              <div className="space-y-4">
-                {stages.map((stage, stageIndex) => (
-                  <div
-                    key={stage.id}
-                    className="border border-border rounded-lg overflow-hidden"
-                  >
-                    {/* Stage Header */}
-                    <div className="bg-muted/50 p-4 flex items-center gap-3">
-                      <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
-                      <span className="text-sm font-medium text-muted-foreground w-6">
-                        {stageIndex + 1}.
-                      </span>
-                      <Input
-                        placeholder="Stage name"
-                        value={stage.name}
-                        onChange={(e) => updateStageName(stage.id, e.target.value)}
-                        className="flex-1 bg-background"
-                      />
+              <div className="space-y-6">
+                {stages.map((stage) => (
+                  <div key={stage.id} className="border border-border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3 flex-1">
+                        <GripVertical className="w-5 h-5 text-muted-foreground cursor-move" />
+                        <Input
+                          value={stage.name}
+                          onChange={(e) => updateStage(stage.id, { name: e.target.value })}
+                          className="font-medium"
+                        />
+                      </div>
                       {stages.length > 1 && (
                         <Button
                           variant="ghost"
@@ -307,8 +429,7 @@ export default function CreateTemplate() {
                       )}
                     </div>
 
-                    {/* Tasks */}
-                    <div className="p-4 space-y-3">
+                    <div className="space-y-3 ml-8">
                       {stage.tasks.map((task) => (
                         <div
                           key={task.id}
@@ -320,7 +441,7 @@ export default function CreateTemplate() {
                             onChange={(e) =>
                               updateTask(stage.id, task.id, { name: e.target.value })
                             }
-                            className="flex-1"
+                            className="flex-1 min-w-[200px]"
                           />
                           <Select
                             value={task.department}
@@ -335,8 +456,65 @@ export default function CreateTemplate() {
                               <SelectItem value="HR">HR</SelectItem>
                               <SelectItem value="IT">IT</SelectItem>
                               <SelectItem value="Finance">Finance</SelectItem>
+                              <SelectItem value="Marketing">Marketing</SelectItem>
                             </SelectContent>
                           </Select>
+
+                          {/* Data Input for Required Date */}
+                          <div className="flex items-center gap-2">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <CalendarComponent
+                                  mode="single"
+                                  onSelect={(date) => {
+                                      if (date) {
+                                          updateTask(stage.id, task.id, { requiredDate: format(date, 'yyyy-MM-dd') });
+                                      }
+                                  }}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <Input
+                                placeholder="Due date (opt)"
+                                value={task.requiredDate || ''}
+                                onChange={(e) =>
+                                    updateTask(stage.id, task.id, { requiredDate: e.target.value })
+                                }
+                                className="w-32 h-9 text-xs"
+                            />
+                          </div>
+
+                          {/* Priority Select */}
+                          <Select
+                            value={task.priority || 'Medium'}
+                            onValueChange={(v) =>
+                                updateTask(stage.id, task.id, { priority: v as Priority })
+                            }
+                          >
+                             <SelectTrigger className="w-32 h-9">
+                                <div className="flex items-center gap-2">
+                                    <Flag className={cn(
+                                        "w-3 h-3",
+                                        task.priority === 'High' ? "text-red-500 fill-red-500" :
+                                        task.priority === 'Medium' ? "text-yellow-500 fill-yellow-500" :
+                                        "text-blue-500 fill-blue-500"
+                                    )} />
+                                    <SelectValue placeholder="Priority" />
+                                </div>
+                             </SelectTrigger>
+                             <SelectContent>
+                                <SelectItem value="High">High</SelectItem>
+                                <SelectItem value="Medium">Medium</SelectItem>
+                                <SelectItem value="Low">Low</SelectItem>
+                             </SelectContent>
+                          </Select>
+
                           <Select
                             value={task.assignedToId}
                             onValueChange={(v) =>
@@ -434,6 +612,11 @@ export default function CreateTemplate() {
                             <span className="px-2 py-0.5 rounded text-xs bg-muted">
                               {task.department}
                             </span>
+                            {task.actionType && (
+                              <span className="px-2 py-0.5 rounded text-xs bg-primary/10 text-primary">
+                                {task.actionType.replace('_', ' ')}
+                              </span>
+                            )}
                             <span className="text-muted-foreground">
                               {users.find((u) => u.id === task.assignedToId)?.name || 'No default'}
                             </span>
@@ -452,7 +635,7 @@ export default function CreateTemplate() {
                 Back
               </Button>
               <Button onClick={handleSubmit} className="gap-2 bg-accent hover:bg-accent/90 text-accent-foreground">
-                Create Template
+                {isEditing ? 'Update Template' : 'Create Template'}
                 <Check className="w-4 h-4" />
               </Button>
             </div>

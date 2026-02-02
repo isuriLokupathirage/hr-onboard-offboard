@@ -21,17 +21,24 @@ import {
 } from '@/components/ui/table';
 import { StatusBadge, WorkflowTypeBadge } from '@/components/ui/status-badge';
 import { ProgressBar } from '@/components/ui/progress-bar';
-import { mockWorkflows, clients } from '@/data/mockData';
-import { WorkflowType, WorkflowStatus } from '@/types/workflow';
+import { mockWorkflows as initialWorkflows, clients } from '@/data/mockData';
+import { WorkflowType, WorkflowStatus, Workflow } from '@/types/workflow';
+import { getWorkflows } from '@/lib/storage';
+import { useEffect } from 'react';
 
 export default function Workflows() {
   const navigate = useNavigate();
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    setWorkflows(getWorkflows());
+  }, []);
   const [typeFilter, setTypeFilter] = useState<WorkflowType | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<WorkflowStatus | 'all'>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
 
-  const filteredWorkflows = mockWorkflows.filter((workflow) => {
+  const filteredWorkflows = workflows.filter((workflow) => {
     const matchesSearch =
       workflow.employee.name.toLowerCase().includes(search.toLowerCase()) ||
       workflow.employee.position.toLowerCase().includes(search.toLowerCase());

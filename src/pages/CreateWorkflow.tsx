@@ -22,6 +22,7 @@ interface NewTask {
   name: string;
   department: Department;
   assignedToId: string;
+  actionType?: 'CREATE_CREDENTIALS';
 }
 
 interface NewStage {
@@ -323,6 +324,20 @@ export default function CreateWorkflow() {
                               <SelectItem value="HR">HR</SelectItem>
                               <SelectItem value="IT">IT</SelectItem>
                               <SelectItem value="Finance">Finance</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={task.actionType || 'none'}
+                            onValueChange={(v) =>
+                              updateTask(stage.id, task.id, { actionType: v === 'none' ? undefined : v as any })
+                            }
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Action" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No Action</SelectItem>
+                              <SelectItem value="CREATE_CREDENTIALS">Create Credentials</SelectItem>
                             </SelectContent>
                           </Select>
                           <Select
