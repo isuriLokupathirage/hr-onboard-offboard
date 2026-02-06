@@ -17,8 +17,11 @@ import { getEmployeeAccounts } from '@/lib/storage';
 import { WorkflowType, Department, Workflow, EmploymentType } from '@/types/workflow';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
-import { getTemplates, updateWorkflow } from '@/lib/storage';
-import { Flag, Calendar } from 'lucide-react';
+import { getTemplates, updateWorkflow, updateEmployeeAccount, getWorkflowById } from '@/lib/storage';
+import { Flag, Calendar, Upload, File, X, AlertCircle } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
+import { OffboardingType, ExitReason } from '@/types/workflow';
 
 interface TaskAssignment {
   taskId: string;
@@ -27,12 +30,16 @@ interface TaskAssignment {
   assignedToId: string;
   priority: 'High' | 'Medium' | 'Low';
   dueDate?: string;
+  dependentOn?: string[];
+  indent?: number;
+  description?: string;
 }
 
 interface StageWithAssignments {
   id: string;
   name: string;
   order: number;
+  description?: string;
   tasks: TaskAssignment[];
 }
 
@@ -55,15 +62,81 @@ export default function StartProcess() {
   const [stages, setStages] = useState<StageWithAssignments[]>([]);
   const employeeAccounts = useMemo(() => getEmployeeAccounts(), []);
 
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const idFromUrl = searchParams.get('employeeId');
-    if (idFromUrl && workflowType === 'Offboarding') {
-      setEmployeeId(idFromUrl);
-    }
-  }, [location.search, workflowType]);
+  // Offboarding State
+  const [offboardingType, setOffboardingType] = useState<OffboardingType>('Voluntary');
+  const [exitReason, setExitReason] = useState<ExitReason | ''>('');
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [otherReason, setOtherReason] = useState('');
+
+  const editWorkflowId = new URLSearchParams(location.search).get('edit');
 
   useEffect(() => {
+    if (editWorkflowId) {
+      const startWorkflow = getWorkflowById(editWorkflowId);
+      if (startWorkflow) {
+        if (startWorkflow.type !== workflowType) {
+          // If types mismatch (e.g. trying to edit an onboarding as offboarding), warn or redirect?
+          // For now, we assume the admin clicked the right edit button. 
+          // But strict safety would check strict types.
+        }
+
+        setClientId(startWorkflow.client.id);
+        
+        // Employee Info
+        if (workflowType === 'Onboarding') {
+          setEmployeeId(startWorkflow.employee.name);
+          setEmployeeEmail(startWorkflow.employee.email || '');
+          setEmployeePosition(startWorkflow.employee.position);
+          setEmployeeDate(startWorkflow.employee.startDate || '');
+        } else {
+            // Reverse lookup for Offboarding to find the distinct Employee ID if possible
+            const accounts = getEmployeeAccounts();
+            const account = accounts.find(a => a.email === startWorkflow.employee.email);
+            if (account) setEmployeeId(account.id);
+            setEmployeeDate(startWorkflow.employee.endDate || startWorkflow.offboardingDetails?.lastWorkingDay || '');
+            
+            if (startWorkflow.offboardingDetails) {
+                 setOffboardingType(startWorkflow.offboardingDetails.type);
+                 setExitReason(startWorkflow.offboardingDetails.exitReason);
+            }
+        }
+
+        // Stages & Tasks
+        const loadedStages: StageWithAssignments[] = startWorkflow.stages.map(s => ({
+            id: s.id,
+            name: s.name,
+            order: s.order,
+            description: s.description,
+            tasks: s.tasks.map(t => ({
+                taskId: t.id,
+                taskName: t.name,
+                department: t.department,
+                assignedToId: t.assignedTo?.id || '',
+                priority: t.priority || 'Medium',
+                dueDate: t.dueDate || '',
+                dependentOn: t.dependentOn,
+                indent: t.indent,
+                description: t.description
+            }))
+        }));
+        setStages(loadedStages);
+        
+        // We won't set selectedTemplateId because we loaded custom data
+        // But we need to ensure validation passes.
+      }
+    }
+  }, [editWorkflowId, workflowType]);
+
+  useEffect(() => {
+    // Only load from template if we are NOT in edit mode OR if the user explicitly changes the template
+    // If we are editing, loading a template would overwrite the existing work.
+    // However, if the user *changes* the dropdown in edit mode, they probably DO want to overwrite.
+    // The issue is distinguishing "init" vs "change".
+    // Simple fix: If stages are empty, allowing loading. If stages are full, only load if selectedTemplateId changes (which it does via state).
+    // BUT, the initial load of edit mode sets stages.
+    // So we need to make sure this effect doesn't run *after* the edit mode effect and wipe it.
+    // We can rely on selectedTemplateId being empty initially in edit mode.
+    
     if (selectedTemplateId) {
       const template = templates.find((t) => t.id === selectedTemplateId);
       if (template) {
@@ -78,14 +151,18 @@ export default function StartProcess() {
           templateStages.map((s) => ({
             id: s.id,
             name: s.name,
+            description: s.description,
             order: s.order,
             tasks: (s.tasks || []).map((t) => ({
               taskId: t.id,
               taskName: t.name,
+              description: t.description,
               department: t.department,
               assignedToId: '',
               priority: t.priority || 'Medium',
               dueDate: '',
+              dependentOn: t.dependentOn || [],
+              indent: t.indent || 0,
             })),
           }))
         );
@@ -108,10 +185,50 @@ export default function StartProcess() {
     );
   };
 
-  // For Offboarding: only require employeeId, endDate, template
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      setUploadedFiles(prev => [...prev, ...files]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const EXIT_REASONS_BY_TYPE: Record<OffboardingType, ExitReason[]> = {
+    Voluntary: [
+      'Career Growth / Opportunity',
+      'Work–Life Balance',
+      'Job Satisfaction',
+      'Compensation & Benefits',
+      'Relocation or Life Changes',
+      'Health Reasons',
+      'Other'
+    ],
+    Involuntary: [
+      'Performance-Related Issues',
+      'Misconduct / Policy Violations',
+      'Client / Project Termination',
+      'Organizational Restructuring',
+      'Other'
+    ],
+    Mutual: [
+      'End of Internship',
+      'End of Contract',
+      'Mutual Agreement',
+      'Other'
+    ]
+  };
+
+  const currentExitReasons = EXIT_REASONS_BY_TYPE[offboardingType];
+
+
+  // Validation
+  // Allow proceeding if editing (editWorkflowId present) regardless of selectedTemplateId
   const canProceedStep1 = workflowType === 'Onboarding'
-    ? clientId && employeeId && employeeDate && selectedTemplateId && employeePosition // Require position for onboarding
-    : employeeId && employeeDate && selectedTemplateId;
+    ? clientId && employeeId && employeeDate && (selectedTemplateId || editWorkflowId) && employeePosition
+    : employeeId && employeeDate && (selectedTemplateId || editWorkflowId) && exitReason && (uploadedFiles.length > 0 || editWorkflowId); // Relax file upload for edit
 
   const canProceedStep2 = stages.length > 0;
 
@@ -134,8 +251,34 @@ export default function StartProcess() {
       ? clients.find(c => c.id === clientId)!
       : selectedEmployee?.client;
 
+    // Save documents to Employee Profile if Offboarding
+    if (workflowType === 'Offboarding' && selectedEmployee && uploadedFiles.length > 0) {
+      const newDocuments = uploadedFiles.map(file => ({
+        name: file.name,
+        // In a real app, this would be the uploaded URL. For prototype, we create a temporary URL
+        url: URL.createObjectURL(file), // Note: This URL will only work in the current session. 
+        // For persistent prototype, we could arguably just not set URL or set a dummy URL if files aren't actually uploaded to a server/storage
+        uploadedAt: new Date().toISOString(),
+        type: 'Offboarding Document'
+      }));
+
+      const updatedEmployee = {
+        ...selectedEmployee,
+        documents: [
+          ...(selectedEmployee.documents || []),
+          ...newDocuments
+        ]
+      };
+
+      updateEmployeeAccount(updatedEmployee);
+    }
+    
+    // Check if we are updating an existing workflow
+    const existingWorkflow = editWorkflowId ? getWorkflowById(editWorkflowId) : null;
+
     const newWorkflow: Workflow = {
-      id: crypto.randomUUID(),
+      id: existingWorkflow ? existingWorkflow.id : crypto.randomUUID(),
+      templateId: selectedTemplateId || existingWorkflow?.templateId,
       type: workflowType,
       client: selectedClient!,
       employee: workflowType === 'Onboarding'
@@ -149,6 +292,8 @@ export default function StartProcess() {
             supervisorId: undefined,
             startDate: undefined,
             endDate: undefined,
+            // Preserve other fields if updating
+            ...(existingWorkflow?.employee || {})
           }
         : {
             name: employeeName,
@@ -159,43 +304,72 @@ export default function StartProcess() {
             employmentType: currentEmploymentType as EmploymentType,
             supervisorId: undefined,
             startDate: undefined,
+
             endDate: employeeDate,
+             // Preserve other fields if updating
+            ...(existingWorkflow?.employee || {})
           },
-      status: 'In Progress',
-      createdAt: new Date().toISOString(),
+      offboardingDetails: workflowType === 'Offboarding' ? {
+        type: offboardingType,
+        exitReason: exitReason as ExitReason,
+        lastWorkingDay: employeeDate,
+        // Merge existing documents with new ones if needed, currently we just overwrite names from uploadedFiles
+        // If editing, we might lose previous file names if we don't handle them.
+        documents: uploadedFiles.length > 0 
+            ? uploadedFiles.map(f => f.name) 
+            : (existingWorkflow?.offboardingDetails?.documents || []),
+      } : undefined,
+      status: existingWorkflow ? existingWorkflow.status : 'In Progress',
+      createdAt: existingWorkflow ? existingWorkflow.createdAt : new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      stages: stages.map(s => {
-        const template = templates.find(t => t.id === selectedTemplateId);
-        const templateStage = template?.stages.find(ts => ts.name === s.name);
-        return {
-          id: s.id,
-          name: s.name,
-          order: s.order,
-          tasks: s.tasks.map(t => {
-            const assignedUser = users.find(u => u.id === t.assignedToId);
-            const templateTask = templateStage?.tasks.find(tt => tt.name === t.taskName);
-            return {
-              id: crypto.randomUUID(),
-              name: t.taskName,
-              department: t.department,
-              status: 'Not Started', // Start as Not Started
-              assignedTo: assignedUser || null,
-              actionType: templateTask?.actionType as any,
-              priority: t.priority,
-              dueDate: t.dueDate || undefined,
-              requiredDate: templateTask?.requiredDate,
-              comments: [], // Initialize comments array
-            };
-          })
-        };
-      })
+      stages: (() => {
+        // If editing, we might want to preserve IDs for existing tasks to avoid breaking comments/history
+        // But re-mapping logic here is complex. 
+        // For now, simpler approach: regeneration of IDs is risky.
+        // We should try to preserve IDs if assignment ID matches existing task ID.
+        
+        return stages.map(s => {
+          return {
+            id: s.id, 
+            name: s.name,
+            order: s.order,
+            description: s.description,
+            tasks: s.tasks.map(t => {
+              const assignedUser = users.find(u => u.id === t.assignedToId);
+              
+              // Try to find existing task to preserve status/comments
+              let existingTask = null;
+              if (existingWorkflow) {
+                  const flatTasks = existingWorkflow.stages.flatMap(st => st.tasks);
+                  existingTask = flatTasks.find(et => et.id === t.taskId);
+              }
+
+              return {
+                id: t.taskId, // Use the taskId from state (which comes from loaded workflow or template)
+                name: t.taskName,
+                description: t.description,
+                department: t.department,
+                status: existingTask ? existingTask.status : 'Open',
+                assignedTo: assignedUser || null,
+                actionType: existingTask?.actionType, // Should come from template really, but...
+                priority: t.priority,
+                dueDate: t.dueDate || undefined,
+                requiredDate: existingTask?.requiredDate,
+                comments: existingTask?.comments || [], 
+                dependentOn: t.dependentOn,
+                indent: t.indent || 0,
+              };
+            })
+          };
+        });
+      })()
     };
 
     updateWorkflow(newWorkflow);
 
     toast({
-      title: `${workflowType} Started`,
-      description: `${workflowType} process for ${selectedEmployee?.name || ''} has been initiated.`,
+      title: editWorkflowId ? `${workflowType} Updated` : `${workflowType} Started`,
+      description: `${workflowType} process for ${selectedEmployee?.name || employeeName} has been ${editWorkflowId ? 'updated' : 'initiated'}.`,
     });
     navigate('/admin/monitoring');
   };
@@ -276,7 +450,7 @@ export default function StartProcess() {
           <div className="bg-card border border-border rounded-xl p-6 space-y-6 animate-fade-in">
             <div>
               <h2 className="text-lg font-semibold text-foreground">Employee Information</h2>
-              <p className="text-sm text-muted-foreground">Enter details about the employee and select a workflow template</p>
+              <p className="text-sm text-muted-foreground">Enter details about the employee and select a check list template</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -332,7 +506,7 @@ export default function StartProcess() {
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label>Workflow Template *</Label>
+                    <Label>Check List Template *</Label>
                     <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a template to apply" />
@@ -387,31 +561,164 @@ export default function StartProcess() {
                 </>
               ) : (
                 <>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Employee *</Label>
-                    <Select value={employeeId} onValueChange={setEmployeeId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select employee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {employeeAccounts.map((emp) => (
-                          <SelectItem key={emp.id} value={emp.id}>
-                            {emp.name} ({emp.position}, {emp.email})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  {/* Employee Details (Read Only / Selection) */}
+                  <div className="space-y-4">
+                     <h3 className="font-medium text-foreground border-b pb-2">1. Employee Details</h3>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2 md:col-span-2">
+                            <Label>Employee *</Label>
+                            <Select value={employeeId} onValueChange={setEmployeeId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select employee" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {employeeAccounts.map((emp) => (
+                                <SelectItem key={emp.id} value={emp.id}>
+                                    {emp.name} ({emp.position}, {emp.email})
+                                </SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        {selectedEmployee && (
+                             <div className="md:col-span-2 grid grid-cols-2 gap-x-6 gap-y-4 bg-muted/20 p-4 rounded-lg border border-border/50">
+                                <div className="space-y-0.5">
+                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Employee ID</span>
+                                    <p className="text-sm font-medium">{selectedEmployee.employeeId || 'N/A'}</p>
+                                </div>
+                                <div className="space-y-0.5">
+                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Job Title</span>
+                                    <p className="text-sm font-medium" title={selectedEmployee.position}>{selectedEmployee.position}</p>
+                                </div>
+                                <div className="space-y-0.5">
+                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Department</span>
+                                    <p className="text-sm font-medium">{selectedEmployee.department}</p>
+                                </div>
+                                <div className="space-y-0.5">
+                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Employ. Type</span>
+                                    <p className="text-sm font-medium">{selectedEmployee.employmentType}</p>
+                                </div>
+                             </div>
+                        )}
+                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>End Date *</Label>
-                    <Input
-                      type="date"
-                      value={employeeDate}
-                      onChange={(e) => setEmployeeDate(e.target.value)}
-                    />
+
+                  {/* Offboarding Details */}
+                  <div className="space-y-4 pt-0">
+                     <h3 className="font-medium text-foreground border-b pb-2">2. Offboarding Details</h3>
+                     
+                     <div className="space-y-3">
+                        <Label>Offboarding Type *</Label>
+                        <RadioGroup 
+                            value={offboardingType} 
+                            onValueChange={(v) => {
+                                setOffboardingType(v as OffboardingType);
+                                setExitReason('' as ExitReason); // Reset exit reason when type changes
+                                setOtherReason('');
+                            }} 
+                            className="flex gap-6"
+                        >
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Voluntary" id="voluntary" />
+                                <Label htmlFor="voluntary" className="font-normal cursor-pointer">Voluntary</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Involuntary" id="involuntary" />
+                                <Label htmlFor="involuntary" className="font-normal cursor-pointer">Involuntary</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Mutual" id="mutual" />
+                                <Label htmlFor="mutual" className="font-normal cursor-pointer">Mutual</Label>
+                            </div>
+                        </RadioGroup>
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label>Exit Reason *</Label>
+                            <Select value={exitReason} onValueChange={(v) => {
+                                setExitReason(v as ExitReason);
+                                if (v === 'Other') setOtherReason('');
+                            }}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select exit reason" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-60">
+                                    {currentExitReasons.map((r) => (
+                                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {exitReason === 'Other' && (
+                                <Input 
+                                    placeholder="Specify other reason" 
+                                    value={otherReason}
+                                    onChange={(e) => setOtherReason(e.target.value)}
+                                    className="mt-2"
+                                />
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Last Working Day *</Label>
+                            <Input
+                            type="date"
+                            value={employeeDate}
+                            onChange={(e) => setEmployeeDate(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">Offboarding Start Date will be set to Today</p>
+                        </div>
+                     </div>
                   </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Workflow Template *</Label>
+
+                  {/* Mandatory Documents */}
+                  <div className="space-y-4 pt-4 md:col-span-2">
+                     <h3 className="font-medium text-foreground border-b pb-2 flex justify-between items-center">
+                        <span>3. Mandatory Documents</span>
+                        <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded">At least one required</span>
+                     </h3>
+                     
+                     <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:bg-muted/30 transition-colors">
+                        <Input 
+                            type="file" 
+                            id="file-upload" 
+                            multiple 
+                            className="hidden" 
+                            accept=".pdf,.eml,.msg"
+                            onChange={handleFileUpload}
+                        />
+                        <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center gap-2">
+                            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                                <Upload className="w-6 h-6" />
+                            </div>
+                            <p className="font-medium">Click to upload documents</p>
+                            <p className="text-xs text-muted-foreground">Supported formats: .eml, .msg, .pdf</p>
+                        </label>
+                     </div>
+                     
+                     {uploadedFiles.length > 0 && (
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium">Uploaded Files:</p>
+                            <div className="grid gap-2">
+                                {uploadedFiles.map((file, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-2 bg-card border border-border rounded-md text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <File className="w-4 h-4 text-primary" />
+                                            <span className="truncate max-w-[200px]">{file.name}</span>
+                                            <span className="text-xs text-muted-foreground">({(file.size / 1024).toFixed(0)} KB)</span>
+                                        </div>
+                                        <button onClick={() => removeFile(idx)} className="text-muted-foreground hover:text-destructive">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                     )}
+                  </div>
+
+                  <div className="space-y-2 pt-4 border-t md:col-span-2">
+                    <Label>Check List Template *</Label>
                     <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a template to apply" />
@@ -427,11 +734,6 @@ export default function StartProcess() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {availableTemplates.length === 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        No templates available. <a href="/templates/create" className="text-accent hover:underline">Create one first</a>.
-                      </p>
-                    )}
                   </div>
                 </>
               )}
@@ -467,6 +769,9 @@ export default function StartProcess() {
                   >
                     <div className="bg-muted/50 p-4">
                       <h4 className="font-medium text-foreground">{stage.name}</h4>
+                      {stage.description && (
+                        <p className="text-sm text-muted-foreground mt-1">{stage.description}</p>
+                      )}
                     </div>
                     <div className="p-4 space-y-3">
                       {stage.tasks.map((task) => (
@@ -474,17 +779,22 @@ export default function StartProcess() {
                           key={task.taskId}
                           className="p-3 bg-muted/30 rounded-md space-y-3"
                         >
-                          <div className="flex items-center gap-3">
-                            <span className="flex-1 text-sm text-foreground font-medium">{task.taskName}</span>
-                            <span className={cn(
-                              'px-2 py-0.5 rounded text-xs font-medium border',
-                              task.department === 'HR' && 'bg-purple-100 text-purple-700 border-purple-200',
-                              task.department === 'IT' && 'bg-blue-100 text-blue-700 border-blue-200',
-                              task.department === 'Finance' && 'bg-emerald-100 text-emerald-700 border-emerald-200',
-                              task.department === 'Marketing' && 'bg-orange-100 text-orange-700 border-orange-200'
-                            )}>
-                              {task.department}
-                            </span>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-3">
+                              <span className="flex-1 text-sm text-foreground font-medium">{task.taskName}</span>
+                              <span className={cn(
+                                'px-2 py-0.5 rounded text-xs font-medium border',
+                                task.department === 'HR' && 'bg-purple-100 text-purple-700 border-purple-200',
+                                task.department === 'IT' && 'bg-blue-100 text-blue-700 border-blue-200',
+                                task.department === 'Finance' && 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                task.department === 'Marketing' && 'bg-orange-100 text-orange-700 border-orange-200'
+                              )}>
+                                {task.department}
+                              </span>
+                            </div>
+                            {task.description && (
+                                <p className="text-xs text-muted-foreground ml-1">{task.description}</p>
+                            )}
                           </div>
                           
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -609,13 +919,17 @@ export default function StartProcess() {
                   <div className="space-y-4">
                     {stages.map((stage) => (
                       <div key={stage.id} className="border border-border rounded-lg p-4">
-                        <h4 className="font-medium text-foreground mb-3">{stage.name}</h4>
+                        <h4 className="font-medium text-foreground">{stage.name}</h4>
+                        {stage.description && (
+                            <p className="text-sm text-muted-foreground mb-3">{stage.description}</p>
+                        )}
                         <div className="space-y-2">
                           {stage.tasks.map((task) => (
                             <div
                               key={task.taskId}
-                              className="flex items-center justify-between text-sm"
+                              className="flex flex-col gap-1 py-1"
                             >
+                            <div className="flex items-center justify-between text-sm">
                               <span className="text-foreground">{task.taskName}</span>
                               <div className="flex items-center gap-2">
                                 <span className="px-2 py-0.5 rounded text-xs bg-muted">
@@ -641,7 +955,11 @@ export default function StartProcess() {
                                 <span className="text-muted-foreground text-xs">
                                   {users.find((u) => u.id === task.assignedToId)?.name || 'Unassigned'}
                                 </span>
+                                </div>
                               </div>
+                                {task.description && (
+                                    <p className="text-xs text-muted-foreground ml-2 border-l-2 pl-2 border-border">{task.description}</p>
+                                )}
                             </div>
                           ))}
                         </div>

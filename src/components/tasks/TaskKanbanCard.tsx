@@ -15,7 +15,7 @@ import { Task, Stage, Workflow, TaskStatus } from '@/types/workflow';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-import { TaskActionModal } from './TaskActionModal';
+
 import { TaskCommentModal } from './TaskCommentModal';
 import { addCommentToTask, addReplyToComment } from '@/lib/storage';
 import { currentUser } from '@/data/mockData';
@@ -28,31 +28,29 @@ interface TaskKanbanCardProps {
   stage: Stage;
   isAvailable?: boolean;
   onStatusChange: (taskId: string, status: TaskStatus, note?: string, output?: any) => void;
+  onClick?: () => void;
 }
 
-export function TaskKanbanCard({ task, workflow, stage, isAvailable = true, onStatusChange }: TaskKanbanCardProps) {
+export function TaskKanbanCard({ task, workflow, stage, isAvailable = true, onStatusChange, onClick }: TaskKanbanCardProps) {
   const [localStatus, setLocalStatus] = useState<TaskStatus>(task.status);
-  const [showActionModal, setShowActionModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
-  const isDone = localStatus === 'Completed';
+  const isDone = localStatus === 'Done';
 
   const handleStatusChange = (newStatus: TaskStatus) => {
     if (!isAvailable) return;
     
-    if (newStatus === 'Completed' && (task.actionType === 'CREATE_CREDENTIALS' || task.actionType === 'COLLECT_DOCUMENTS')) {
-      setShowActionModal(true);
-      return;
-    }
-
     setLocalStatus(newStatus);
     onStatusChange(task.id, newStatus);
   };
 
   return (
-    <div className={cn(
-      "bg-card border border-border rounded-lg p-3 shadow-sm",
-      !isAvailable && "opacity-60 grayscale-[0.5] cursor-not-allowed"
-    )}>
+    <div 
+      className={cn(
+        "bg-card border border-border rounded-lg p-3 shadow-sm transition-all hover:shadow-md cursor-pointer",
+        !isAvailable && "opacity-60 grayscale-[0.5] cursor-not-allowed"
+      )}
+      onClick={() => isAvailable && onClick?.()}
+    >
       {/* Task Name */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <h4 className="font-medium text-sm text-foreground">{task.name}</h4>
@@ -115,25 +113,36 @@ export function TaskKanbanCard({ task, workflow, stage, isAvailable = true, onSt
 
       {/* Footer Actions */}
       <div className="flex items-center justify-between pt-2 border-t border-border mt-2">
-         <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowCommentModal(true)}
-            className="h-7 text-xs text-muted-foreground px-2"
-          >
-            <MessageSquare className="w-3 h-3 mr-1" />
-            {task.comments?.length || 0}
-          </Button>
+
 
          <div className="flex items-center gap-1">
           <Button
-            variant={localStatus === 'Completed' ? 'default' : 'ghost'}
+            variant={localStatus === 'Open' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => handleStatusChange('Completed')}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStatusChange('Open');
+            }}
+            disabled={isDone || !isAvailable}
+            className={cn(
+              'h-7 text-xs px-2',
+              localStatus === 'Open' && 'bg-muted hover:bg-muted/90'
+            )}
+            title="Mark as Open"
+          >
+            <Clock className="w-3 h-3 text-muted-foreground" />
+          </Button>
+          <Button
+            variant={localStatus === 'Done' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStatusChange('Done');
+            }}
             disabled={!isAvailable}
             className={cn(
               'h-7 text-xs px-2',
-              localStatus === 'Completed' && 'bg-success hover:bg-success/90'
+              localStatus === 'Done' && 'bg-success hover:bg-success/90'
             )}
             title="Mark as Done"
           >
@@ -142,7 +151,10 @@ export function TaskKanbanCard({ task, workflow, stage, isAvailable = true, onSt
           <Button
             variant={localStatus === 'In Progress' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => handleStatusChange('In Progress')}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStatusChange('In Progress');
+            }}
             disabled={isDone || !isAvailable}
             className={cn(
               'h-7 text-xs px-2',
@@ -154,13 +166,16 @@ export function TaskKanbanCard({ task, workflow, stage, isAvailable = true, onSt
             <Clock className="w-3 h-3" />
           </Button>
           <Button
-            variant={localStatus === 'Need Information' ? 'default' : 'ghost'}
+            variant={localStatus === 'Need Info' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => handleStatusChange('Need Information')}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStatusChange('Need Info');
+            }}
             disabled={isDone || !isAvailable}
             className={cn(
               'h-7 text-xs px-2',
-              localStatus === 'Need Information' && 'bg-info hover:bg-info/90 text-info-foreground',
+              localStatus === 'Need Info' && 'bg-info hover:bg-info/90 text-info-foreground',
               (isDone || !isAvailable) && 'opacity-50'
             )}
              title="Request Info"
@@ -170,15 +185,6 @@ export function TaskKanbanCard({ task, workflow, stage, isAvailable = true, onSt
          </div>
       </div>
      
-      <TaskActionModal 
-        task={task}
-        isOpen={showActionModal}
-        onClose={() => setShowActionModal(false)}
-        onSubmit={(status, not, output) => {
-          onStatusChange(task.id, status, not, output);
-          setLocalStatus(status);
-        }}
-      />
       
       <TaskCommentModal
         task={task}

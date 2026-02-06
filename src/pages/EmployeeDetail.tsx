@@ -1,15 +1,19 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, User, Mail, Phone, MapPin, Building2, Calendar, FileText, CreditCard, UserMinus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ArrowLeft, User, Mail, Phone, MapPin, Building2, Calendar, FileText, CreditCard, UserMinus, Download, ExternalLink } from 'lucide-react';
 import { getEmployeeAccounts } from '@/lib/storage';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { EmployeeDocument } from '@/types/workflow';
 
 export default function EmployeeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [selectedDocument, setSelectedDocument] = useState<EmployeeDocument | null>(null);
   const accounts = getEmployeeAccounts();
   const employee = accounts.find(a => a.id === id);
 
@@ -329,9 +333,11 @@ export default function EmployeeDetail() {
                                             <p className="text-xs text-muted-foreground">Uploaded on {new Date(doc.uploadedAt).toLocaleDateString()}</p>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" size="sm" asChild>
-                                        <a href={doc.url} target="_blank" rel="noopener noreferrer">View</a>
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button variant="ghost" size="sm" onClick={() => setSelectedDocument(doc)}>
+                                            View
+                                        </Button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -345,6 +351,44 @@ export default function EmployeeDetail() {
              </Card>
            </TabsContent>
         </Tabs>
+
+        {/* Document Viewer Modal */}
+        <Dialog open={!!selectedDocument} onOpenChange={(open) => !open && setSelectedDocument(null)}>
+            <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+                <DialogHeader className="flex-shrink-0">
+                    <DialogTitle>{selectedDocument?.name}</DialogTitle>
+                    <DialogDescription>
+                        Uploaded on {selectedDocument?.uploadedAt ? new Date(selectedDocument.uploadedAt).toLocaleDateString() : '-'}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex-1 bg-muted/20 w-full rounded-md border text-center flex flex-col items-center justify-center p-4 overflow-hidden">
+                    {selectedDocument?.url ? (
+                        <iframe 
+                            src={selectedDocument.url} 
+                            className="w-full h-full bg-white rounded-md"
+                            title={selectedDocument.name}
+                        />
+                    ) : (
+                        <div className="text-muted-foreground">
+                            <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                            <p>Preview not available for this file type.</p>
+                        </div>
+                    )}
+                </div>
+                <div className="flex justify-end gap-2 mt-4 pt-2 border-t flex-shrink-0">
+                    <Button variant="outline" onClick={() => setSelectedDocument(null)}>
+                        Close
+                    </Button>
+                    {selectedDocument?.url && (
+                        <Button asChild>
+                            <a href={selectedDocument.url} download={selectedDocument.name} target="_blank" rel="noopener noreferrer" className="gap-2">
+                                <Download className="w-4 h-4" /> Download
+                            </a>
+                        </Button>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

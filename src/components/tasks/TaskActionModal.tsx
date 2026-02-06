@@ -73,7 +73,7 @@ export function TaskActionModal({ task, isOpen, onClose, onSubmit }: TaskActionM
       output = { documents };
     }
 
-    onSubmit('Completed', note, output);
+    onSubmit('Done', note, output);
     onClose();
   };
 

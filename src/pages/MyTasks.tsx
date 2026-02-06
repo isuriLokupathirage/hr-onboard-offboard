@@ -1,7 +1,8 @@
+
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Filter, Search, LayoutGrid, List } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { currentUser } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 import { Task, Stage, Workflow, TaskStatus } from '@/types/workflow';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -14,12 +15,16 @@ import {
 } from '@/components/ui/select';
 import { TaskExecutionCard } from '@/components/tasks/TaskExecutionCard';
 import { TaskKanbanCard } from '@/components/tasks/TaskKanbanCard';
+import { TaskDetailModal } from '@/components/tasks/TaskDetailModal';
 import { 
   getWorkflows, 
   updateWorkflow, 
   isTaskAvailable, 
   getNextTask, 
-  addNotification 
+  addNotification,
+  addCommentToTask,
+  addReplyToComment,
+  completeWorkflow
 } from '@/lib/storage';
 import { toast } from '@/hooks/use-toast';
 
@@ -33,12 +38,14 @@ interface TaskWithContext {
 type ViewMode = 'list' | 'kanban';
 
 export default function MyTasks() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const loadWorkflows = useCallback(() => {
     setWorkflows(getWorkflows());
@@ -61,10 +68,12 @@ export default function MyTasks() {
 
   // Get all tasks assigned to the current user
   const myTasks: TaskWithContext[] = useMemo(() => {
+    if (!user) return [];
+    
     return workflows.flatMap((workflow) =>
       workflow.stages.flatMap((stage) =>
         stage.tasks
-          .filter((task) => task.assignedTo?.id === currentUser.id)
+          .filter((task) => task.assignedTo?.id === user.id)
           .map((task) => ({ 
             task, 
             workflow, 
@@ -73,7 +82,11 @@ export default function MyTasks() {
           }))
       )
     );
-  }, [workflows]);
+  }, [workflows, user]);
+
+  const selectedTaskWithContext = useMemo(() => {
+    return selectedTaskId ? myTasks.find(t => t.task.id === selectedTaskId) || null : null;
+  }, [myTasks, selectedTaskId]);
 
   // Get unique clients for filter
   const clients = useMemo(() => {
@@ -97,9 +110,10 @@ export default function MyTasks() {
   // Group tasks by status for kanban view
   const tasksByStatus = useMemo(() => {
     return {
-      'In Progress': filteredTasks.filter((t) => ['Not Started', 'In Progress', 'Pending'].includes(t.task.status)),
-      'Need Information': filteredTasks.filter((t) => t.task.status === 'Need Information'),
-      'Completed': filteredTasks.filter((t) => ['Completed', 'Done'].includes(t.task.status)),
+      'Open': filteredTasks.filter((t) => t.task.status === 'Open'),
+      'In Progress': filteredTasks.filter((t) => t.task.status === 'In Progress'),
+      'Need Info': filteredTasks.filter((t) => t.task.status === 'Need Info'),
+      'Done': filteredTasks.filter((t) => t.task.status === 'Done'),
     };
   }, [filteredTasks]);
 
@@ -129,7 +143,7 @@ export default function MyTasks() {
       };
 
       // Handle sequential notifications
-      if (newStatus === 'Completed') {
+      if (newStatus === 'Done') {
         const nextTask = getNextTask(workflowToUpdate, taskId);
         if (nextTask && nextTask.assignedTo) {
           addNotification({
@@ -143,21 +157,15 @@ export default function MyTasks() {
 
       // Check if all tasks in the workflow are done
       const allDone = updatedWorkflow.stages.every(s => 
-        s.tasks.every(t => t.status === 'Completed')
+        s.tasks.every(t => t.status === 'Done')
       );
       
       if (allDone) {
-        updatedWorkflow.status = 'Completed';
-        addNotification({
-          type: 'workflow_completed',
-          message: `${workflowToUpdate.type} workflow for ${workflowToUpdate.employee.name} has been completed!`,
-          workflowId: workflowToUpdate.id,
-        });
+        completeWorkflow(updatedWorkflow);
       } else {
         updatedWorkflow.status = 'In Progress';
+        updateWorkflow(updatedWorkflow);
       }
-
-      updateWorkflow(updatedWorkflow);
       loadWorkflows();
       
       toast({
@@ -167,22 +175,34 @@ export default function MyTasks() {
     }
   };
 
-  const pendingCount = myTasks.filter((t) => ['Not Started', 'In Progress', 'Pending'].includes(t.task.status)).length;
-  const needInfoCount = myTasks.filter((t) => t.task.status === 'Need Information').length;
-  const doneCount = myTasks.filter((t) => ['Completed', 'Done'].includes(t.task.status)).length;
+  const openCount = myTasks.filter((t) => t.task.status === 'Open').length;
+  const inProgressCount = myTasks.filter((t) => t.task.status === 'In Progress').length;
+  const needInfoCount = myTasks.filter((t) => t.task.status === 'Need Info').length;
+  const doneCount = myTasks.filter((t) => t.task.status === 'Done').length;
+
+  if (!user) return null;
 
   return (
     <AppLayout title="My Assigned Tasks" subtitle={`${myTasks.length} total tasks`}>
       <div className="space-y-6">
         {/* Stats Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-lg p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center">
-              <span className="text-xl font-bold text-warning">{pendingCount}</span>
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+              <span className="text-xl font-bold text-muted-foreground">{openCount}</span>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Pending</p>
-              <p className="font-semibold text-foreground">Tasks to complete</p>
+              <p className="text-sm text-muted-foreground">Open</p>
+              <p className="font-semibold text-foreground">Not started</p>
+            </div>
+          </div>
+          <div className="bg-card border border-border rounded-lg p-4 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center">
+              <span className="text-xl font-bold text-warning">{inProgressCount}</span>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">In Progress</p>
+              <p className="font-semibold text-foreground">Active tasks</p>
             </div>
           </div>
           <div className="bg-card border border-border rounded-lg p-4 flex items-center gap-4">
@@ -190,7 +210,7 @@ export default function MyTasks() {
               <span className="text-xl font-bold text-info">{needInfoCount}</span>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Need Information</p>
+              <p className="text-sm text-muted-foreground">Need Info</p>
               <p className="font-semibold text-foreground">Awaiting input</p>
             </div>
           </div>
@@ -224,9 +244,10 @@ export default function MyTasks() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Open">Open</SelectItem>
                 <SelectItem value="In Progress">In Progress</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-                <SelectItem value="Need Information">Need Information</SelectItem>
+                <SelectItem value="Done">Done</SelectItem>
+                <SelectItem value="Need Info">Need Info</SelectItem>
               </SelectContent>
             </Select>
 
@@ -295,15 +316,37 @@ export default function MyTasks() {
                   stage={stage}
                   isAvailable={isAvailable}
                   onStatusChange={handleStatusChange}
+                  onClick={() => setSelectedTaskId(task.id)}
                 />
               ))
             )}
           </div>
         ) : (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Open Column - Gray/Muted */}
+            <div className="bg-muted/30 border-t-4 border-muted-foreground/40 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-3 h-3 rounded-full bg-muted-foreground/40" />
+                <h3 className="font-semibold text-foreground">Open</h3>
+                <span className="text-sm text-muted-foreground">({tasksByStatus['Open'].length})</span>
+              </div>
+              <div className="space-y-3">
+                {tasksByStatus['Open'].map(({ task, workflow, stage, isAvailable }) => (
+                  <TaskKanbanCard
+                    key={task.id}
+                    task={task}
+                    workflow={workflow}
+                    stage={stage}
+                    isAvailable={isAvailable}
+                    onStatusChange={handleStatusChange}
+                    onClick={() => setSelectedTaskId(task.id)}
+                  />
+                ))}
+              </div>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* In Progress Column */}
-            <div className="bg-muted/30 rounded-xl p-4">
+            {/* In Progress Column - Yellow/Warning */}
+            <div className="bg-warning/5 border-t-4 border-warning rounded-xl p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-3 h-3 rounded-full bg-warning" />
                 <h3 className="font-semibold text-foreground">In Progress</h3>
@@ -318,20 +361,21 @@ export default function MyTasks() {
                     stage={stage}
                     isAvailable={isAvailable}
                     onStatusChange={handleStatusChange}
+                    onClick={() => setSelectedTaskId(task.id)}
                   />
                 ))}
               </div>
             </div>
 
-            {/* Need Information Column */}
-            <div className="bg-muted/30 rounded-xl p-4">
+            {/* Need Information Column - Blue/Info */}
+            <div className="bg-info/5 border-t-4 border-info rounded-xl p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-3 h-3 rounded-full bg-info" />
-                <h3 className="font-semibold text-foreground">Need Information</h3>
-                <span className="text-sm text-muted-foreground">({tasksByStatus['Need Information'].length})</span>
+                <h3 className="font-semibold text-foreground">Need Info</h3>
+                <span className="text-sm text-muted-foreground">({tasksByStatus['Need Info'].length})</span>
               </div>
               <div className="space-y-3">
-                {tasksByStatus['Need Information'].map(({ task, workflow, stage, isAvailable }) => (
+                {tasksByStatus['Need Info'].map(({ task, workflow, stage, isAvailable }) => (
                   <TaskKanbanCard
                     key={task.id}
                     task={task}
@@ -339,20 +383,21 @@ export default function MyTasks() {
                     stage={stage}
                     isAvailable={isAvailable}
                     onStatusChange={handleStatusChange}
+                    onClick={() => setSelectedTaskId(task.id)}
                   />
                 ))}
               </div>
             </div>
 
-            {/* Completed Column */}
-            <div className="bg-muted/30 rounded-xl p-4">
+            {/* Completed Column - Green/Success */}
+            <div className="bg-success/5 border-t-4 border-success rounded-xl p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-3 h-3 rounded-full bg-success" />
-                <h3 className="font-semibold text-foreground">Completed</h3>
-                <span className="text-sm text-muted-foreground">({tasksByStatus['Completed'].length})</span>
+                <h3 className="font-semibold text-foreground">Done</h3>
+                <span className="text-sm text-muted-foreground">({tasksByStatus['Done'].length})</span>
               </div>
               <div className="space-y-3">
-                {tasksByStatus['Completed'].map(({ task, workflow, stage, isAvailable }) => (
+                {tasksByStatus['Done'].map(({ task, workflow, stage, isAvailable }) => (
                   <TaskKanbanCard
                     key={task.id}
                     task={task}
@@ -360,13 +405,59 @@ export default function MyTasks() {
                     stage={stage}
                     isAvailable={isAvailable}
                     onStatusChange={handleStatusChange}
+                    onClick={() => setSelectedTaskId(task.id)}
                   />
                 ))}
               </div>
             </div>
           </div>
         )}
+
+      <TaskDetailModal
+        task={selectedTaskWithContext?.task || null}
+        workflow={selectedTaskWithContext?.workflow || null}
+        isOpen={!!selectedTaskWithContext}
+        onClose={() => setSelectedTaskId(null)}
+        isAvailable={selectedTaskWithContext?.isAvailable}
+        currentUser={{
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          isAdmin: !!user.isAdmin, // Ensure boolean
+          avatar: user.avatar
+        }}
+        onStatusChange={(status, note) => {
+           if (selectedTaskWithContext) {
+             handleStatusChange(selectedTaskWithContext.task.id, status, note);
+           }
+        }}
+        onAddComment={(text) => {
+             if (selectedTaskWithContext) {
+                addCommentToTask(selectedTaskWithContext.workflow.id, selectedTaskWithContext.task.id, text, {
+                  id: user.id,
+                  name: user.name,
+                  email: user.email,
+                  isAdmin: !!user.isAdmin,
+                  avatar: user.avatar
+                });
+                window.dispatchEvent(new Event('workflowsUpdated'));
+             }
+        }}
+        onAddReply={(commentId, text) => {
+             if (selectedTaskWithContext) {
+                addReplyToComment(selectedTaskWithContext.workflow.id, selectedTaskWithContext.task.id, commentId, text, {
+                  id: user.id,
+                  name: user.name,
+                  email: user.email,
+                  isAdmin: !!user.isAdmin,
+                  avatar: user.avatar
+                });
+                window.dispatchEvent(new Event('workflowsUpdated'));
+             }
+        }}
+      />
       </div>
     </AppLayout>
   );
 }
+

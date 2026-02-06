@@ -6,113 +6,124 @@
 
 @layer base {
   :root {
-    /* Enterprise Navy/Slate Theme */
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
+    /* Warm Asset Management Theme */
+    /* Warm Off-White Background for main area */
+    --background: 40 20% 98%;
+    /* #FDFCF8 */
+    --foreground: 20 10% 20%;
+    /* #38332E - Warm Dark Grey */
 
+    /* White Cards */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 20 10% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 20 10% 20%;
 
-    /* Deep Slate Primary */
-    --primary: 222 47% 20%;
-    --primary-foreground: 210 40% 98%;
+    /* Vibrant Golden Yellow Primary (Matches "Add Component" button) */
+    --primary: 45 100% 51%;
+    /* #FFC107 */
+    --primary-foreground: 20 10% 10%;
+    /* Dark text on Yellow */
 
-    /* Soft Gray Secondary */
-    --secondary: 214 32% 91%;
-    --secondary-foreground: 222 47% 20%;
+    /* Soft Warm Secondary */
+    --secondary: 40 20% 94%;
+    --secondary-foreground: 20 10% 20%;
 
     /* Muted tones */
-    --muted: 214 32% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 40 10% 90%;
+    --muted-foreground: 25 5% 45%;
 
-    /* Teal Accent */
-    --accent: 173 58% 39%;
-    --accent-foreground: 0 0% 100%;
+    /* Golden Accent */
+    --accent: 45 100% 51%;
+    --accent-foreground: 20 10% 10%;
 
     /* Status Colors */
-    --success: 142 71% 45%;
+    --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
-    
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    
-    --info: 199 89% 48%;
-    --info-foreground: 0 0% 100%;
-    
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
 
-    /* Pending/In Progress */
-    --pending: 38 92% 50%;
+    --warning: 35 90% 45%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 210 90% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Generic status mappings */
+    --pending: 35 90% 45%;
     --pending-foreground: 0 0% 100%;
-    
-    /* Done/Complete */
-    --done: 142 71% 45%;
+
+    --done: 142 70% 45%;
     --done-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 173 58% 39%;
+    --border: 40 10% 88%;
+    --input: 40 10% 88%;
+    --ring: 45 100% 51%;
 
     --radius: 0.5rem;
 
-    /* Sidebar */
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 173 58% 39%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 47% 18%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 47% 18%;
-    --sidebar-ring: 173 58% 39%;
-    --sidebar-muted: 215 16% 65%;
+    /* Cream/Beige Sidebar */
+    --sidebar-background: 40 30% 97%;
+    /* Creamy off-white */
+    --sidebar-foreground: 25 10% 40%;
+
+    /* Active Sidebar Item - Yellow with Dark Text */
+    --sidebar-primary: 45 100% 51%;
+    --sidebar-primary-foreground: 20 10% 15%;
+
+    --sidebar-accent: 45 100% 51%;
+    --sidebar-accent-foreground: 20 10% 15%;
+
+    --sidebar-border: 40 10% 90%;
+    --sidebar-ring: 45 100% 51%;
+    --sidebar-muted: 25 5% 60%;
 
     /* Custom gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(222 47% 20%), hsl(222 47% 30%));
-    --gradient-accent: linear-gradient(135deg, hsl(173 58% 39%), hsl(173 58% 50%));
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(214 32% 99%));
+    --gradient-primary: linear-gradient(135deg, hsl(45 100% 51%), hsl(40 100% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(45 100% 51%), hsl(40 100% 60%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(40 20% 99%));
   }
 
   .dark {
-    --background: 222 47% 8%;
-    --foreground: 210 40% 98%;
+    /* Dark mode adjustments (Warm Dark) */
+    --background: 20 10% 10%;
+    --foreground: 40 20% 90%;
 
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
+    --card: 20 10% 13%;
+    --card-foreground: 40 20% 90%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 20 10% 13%;
+    --popover-foreground: 40 20% 90%;
 
-    --primary: 173 58% 45%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 45 93% 47%;
+    --primary-foreground: 20 10% 10%;
 
-    --secondary: 222 47% 18%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 20 10% 18%;
+    --secondary-foreground: 40 20% 90%;
 
-    --muted: 222 47% 15%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 20 10% 18%;
+    --muted-foreground: 25 5% 60%;
 
-    --accent: 173 58% 45%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 45 93% 47%;
+    --accent-foreground: 20 10% 10%;
 
     --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 40 20% 90%;
 
-    --border: 222 47% 18%;
-    --input: 222 47% 18%;
-    --ring: 173 58% 45%;
+    --border: 20 10% 18%;
+    --input: 20 10% 18%;
+    --ring: 45 93% 47%;
 
-    --sidebar-background: 222 47% 6%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 173 58% 45%;
+    --sidebar-background: 20 10% 8%;
+    --sidebar-foreground: 40 20% 90%;
+    --sidebar-primary: 45 93% 47%;
     --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 222 47% 12%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 47% 12%;
-    --sidebar-ring: 173 58% 45%;
+    --sidebar-accent: 20 10% 15%;
+    --sidebar-accent-foreground: 45 93% 47%;
+    --sidebar-border: 20 10% 15%;
+    --sidebar-ring: 45 93% 47%;
   }
 }
 
@@ -131,37 +142,37 @@
   .status-badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium;
   }
-  
+
   .status-pending {
-    @apply bg-warning/15 text-warning;
+    @apply bg-warning/20 text-warning-foreground;
   }
-  
+
   .status-done {
-    @apply bg-success/15 text-success;
+    @apply bg-success/20 text-success-foreground;
   }
-  
+
   .stage-card {
     @apply bg-card border border-border rounded-lg shadow-sm;
   }
-  
+
   .task-card {
     @apply bg-background border border-border rounded-md p-4 shadow-sm hover:shadow-md transition-shadow;
   }
-  
+
   .progress-bar {
     @apply h-2 bg-secondary rounded-full overflow-hidden;
   }
-  
+
   .progress-fill {
     @apply h-full bg-accent rounded-full transition-all duration-500;
   }
-  
+
   .nav-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-primary/10 hover:text-sidebar-foreground transition-colors;
   }
-  
+
   .nav-item-active {
-    @apply bg-sidebar-accent text-sidebar-foreground font-medium;
+    @apply bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm;
   }
 }
 
@@ -169,11 +180,11 @@
   .gradient-primary {
     background: var(--gradient-primary);
   }
-  
+
   .gradient-accent {
     background: var(--gradient-accent);
   }
-  
+
   .text-gradient {
     @apply bg-clip-text text-transparent;
     background: var(--gradient-accent);

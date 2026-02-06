@@ -7,7 +7,7 @@ import { StatusBadge, WorkflowTypeBadge } from '@/components/ui/status-badge';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Button } from '@/components/ui/button';
 import { Workflow } from '@/types/workflow';
-import { getWorkflowById, updateWorkflow, updateEmployeeAccount, deactivateEmployeeAccount, getEmployeeAccounts } from '@/lib/storage';
+import { getWorkflowById, updateWorkflow, completeWorkflow } from '@/lib/storage';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -45,69 +45,15 @@ export default function WorkflowDetail() {
   const handleComplete = () => {
     if (!workflow) return;
 
-    const updatedWorkflow: Workflow = {
-      ...workflow,
-      status: 'Completed',
-      updatedAt: new Date().toISOString(),
-    };
-
-    updateWorkflow(updatedWorkflow);
-    setWorkflow(updatedWorkflow);
-
-    if (workflow.type === 'Onboarding') {
-      const { users } = require('@/data/mockData');
-      const supervisor = users.find((u: any) => u.id === workflow.employee.supervisorId);
-
-      const existingAccounts = getEmployeeAccounts();
-      const existingAccount = existingAccounts.find(
-        (a: any) => a.email === workflow.employee.email
-      );
-
-      // Collect documents from all tasks
-      const allDocuments = workflow.stages.flatMap(stage => 
-        stage.tasks.flatMap(task => task.outputValue?.documents || [])
-      );
-
-      if (!existingAccount) {
-        // Create new account
-        updateEmployeeAccount({
-          id: crypto.randomUUID(),
-          name: workflow.employee.name,
-          email: workflow.employee.email || '',
-          position: workflow.employee.position,
-          department: workflow.employee.department,
-          client: workflow.client,
-
-          employmentType: workflow.employee.employmentType,
-          supervisor: supervisor,
-          status: 'Active',
-          onboardedAt: new Date().toISOString(),
-          documents: allDocuments,
-        });
-      } else {
-        // Account exists (manual creation or previous workflow). 
-        // We should link/merge the documents from this workflow to the existing employee account.
-        if (allDocuments.length > 0) {
-          const currentDocs = existingAccount.documents || [];
-          // Merge unique docs by name to avoid exact duplicates if re-run
-          const newDocs = allDocuments.filter(ad => !currentDocs.some(cd => cd.name === ad.name));
-          
-          if (newDocs.length > 0) {
-            const updatedDocs = [...currentDocs, ...newDocs];
-            
-            updateEmployeeAccount({
-              ...existingAccount,
-              documents: updatedDocs
-            });
-          }
-        }
-      }
-    } else {
-      // Deactivate account
-      if (workflow.employee.email) {
-        deactivateEmployeeAccount(workflow.employee.email);
-      }
-    }
+    // Use centralized completion logic
+    completeWorkflow(workflow);
+    
+    // Update local state to reflect changes immediately
+    setWorkflow({
+        ...workflow,
+        status: 'Completed',
+        updatedAt: new Date().toISOString()
+    });
 
     toast({
       title: "Workflow Completed",
@@ -142,7 +88,7 @@ export default function WorkflowDetail() {
 
   const totalTasks = stages.reduce((acc, stage) => acc + stage.tasks.length, 0);
   const completedTasks = stages.reduce(
-    (acc, stage) => acc + stage.tasks.filter((t) => t.status === 'Completed').length,
+    (acc, stage) => acc + stage.tasks.filter((t) => t.status === 'Done').length,
     0
   );
 

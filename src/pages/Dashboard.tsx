@@ -41,11 +41,11 @@ export default function Dashboard() {
     return workflows.map((workflow) => {
       const allTasks = workflow.stages.flatMap((s) => s.tasks);
       const totalTasks = allTasks.length;
-      const completedTasks = allTasks.filter((t) => t.status === 'Completed').length;
-      const pendingTasks = allTasks.filter((t) => t.status === 'Not Started' || t.status === 'In Progress').length;
-      const needInfoTasks = allTasks.filter((t) => t.status === 'Need Information').length;
+      const completedTasks = allTasks.filter((t) => t.status === 'Done').length;
+      const pendingTasks = allTasks.filter((t) => t.status === 'Open' || t.status === 'In Progress').length;
+      const needInfoTasks = allTasks.filter((t) => t.status === 'Need Info').length;
       const overdueTasks = allTasks.filter(
-        (t) => (t.status === 'Not Started' || t.status === 'In Progress') && t.dueDate && new Date(t.dueDate) < new Date()
+        (t) => (t.status === 'Open' || t.status === 'In Progress') && t.dueDate && new Date(t.dueDate) < new Date()
       ).length;
 
       return {

@@ -9,14 +9,15 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const isDone = status === 'Done' || status === 'Completed';
-  const isNeedInfo = status === 'Need Information';
+  const isNeedInfo = status === 'Need Info';
   const isCancelled = status === 'Cancelled';
+  const isOpen = status === 'Open';
 
   return (
     <span
       className={cn(
         'status-badge',
-        isDone ? 'status-done' : isNeedInfo ? 'bg-info/15 text-info' : isCancelled ? 'bg-muted text-muted-foreground' : 'status-pending',
+        isDone ? 'status-done' : isNeedInfo ? 'bg-info/15 text-info' : isCancelled ? 'bg-muted text-muted-foreground' : isOpen ? 'status-pending' : 'bg-warning/15 text-warning',
         className
       )}
     >
@@ -26,10 +27,12 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
         <AlertCircle className="w-3 h-3" />
       ) : isCancelled ? (
         <Ban className="w-3 h-3" />
+      ) : isOpen ? (
+        <Clock className="w-3 h-3 text-muted-foreground" />
       ) : (
         <Clock className="w-3 h-3" />
       )}
-      {isNeedInfo ? 'Need Info' : status}
+      {status}
     </span>
   );
 }

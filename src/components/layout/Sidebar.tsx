@@ -10,9 +10,11 @@ import {
   ClipboardList,
   Eye,
   FileText,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NavItem {
   icon: React.ElementType;
@@ -26,39 +28,53 @@ interface NavSection {
   items: NavItem[];
 }
 
-const navSections: NavSection[] = [
-  {
-    title: 'General',
-    items: [
-      { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-      { icon: ClipboardList, label: 'My Tasks', path: '/my-tasks', badge: 4 },
-    ]
-  },
-  {
-    title: 'Transitions',
-    items: [
-      { icon: UserPlus, label: 'Start Process', path: '/start/onboarding' },
-    ]
-  },
-  {
-    title: 'Organization',
-    items: [
-      { icon: Eye, label: 'Task Monitoring', path: '/admin/monitoring' },
-      { icon: FileText, label: 'Workflow Templates', path: '/templates' },
-    ]
-  },
-  {
-    title: 'Employee Management',
-    items: [
-      { icon: Users, label: 'All Employees', path: '/admin/directory' },
-    ]
-  }
-];
-
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, role, logout } = useAuth();
+
+  const navSections: NavSection[] = [
+    {
+      title: 'General',
+      items: [
+        { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+        { icon: ClipboardList, label: 'My Tasks', path: '/my-tasks', badge: 4 },
+      ]
+    },
+    {
+      title: 'Transitions',
+      items: [
+        { icon: UserPlus, label: 'Start Process', path: '/start/onboarding' },
+      ]
+    },
+    {
+      title: 'Organization',
+      items: [
+        { icon: Eye, label: 'Task Monitoring', path: '/admin/monitoring' },
+        { icon: FileText, label: 'Check List Templates', path: '/templates' },
+      ]
+    },
+    {
+      title: 'Employee Management',
+      items: [
+        { icon: Users, label: 'All Employees', path: '/admin/directory' },
+      ]
+    }
+  ];
+
+  // Filter sections based on role
+  const filteredSections = role === 'employee' 
+    ? [{
+        title: 'General',
+        items: [{ icon: ClipboardList, label: 'My Tasks', path: '/my-tasks', badge: 4 }]
+      }]
+    : navSections;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <aside
@@ -70,11 +86,11 @@ export function Sidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <Users className="w-5 h-5 text-sidebar-primary-foreground" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-sm">
+              <Users className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-semibold text-sidebar-foreground">WorkflowHR</span>
+            <span className="font-bold text-lg text-sidebar-foreground">WorkflowHR</span>
           </div>
         )}
         <Button
@@ -89,7 +105,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 py-4 px-3 space-y-6 overflow-y-auto">
-        {navSections.map((section) => (
+        {filteredSections.map((section) => (
           <div key={section.title} className="space-y-1">
             {!collapsed && (
               <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-sidebar-muted mb-2">
@@ -126,18 +142,40 @@ export function Sidebar() {
       </nav>
 
       {/* User Section */}
-      {!collapsed && (
-        <div className="p-4 border-t border-sidebar-border">
+      {!collapsed && user && (
+        <div className="p-4 border-t border-sidebar-border space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-sidebar-primary flex items-center justify-center text-sm font-medium text-sidebar-primary-foreground">
-              MC
+              {user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">Michael Chen</p>
-              <p className="text-xs text-sidebar-muted truncate">IT Department</p>
+              <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name}</p>
+              <p className="text-xs text-sidebar-muted truncate">{user.department}</p>
             </div>
           </div>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-muted-foreground hover:text-destructive"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
         </div>
+      )}
+      
+      {collapsed && (
+          <div className="p-2 border-t border-sidebar-border">
+            <Button 
+                variant="ghost" 
+                size="icon"
+                className="w-full text-muted-foreground hover:text-destructive"
+                onClick={handleLogout}
+                title="Sign Out"
+            >
+                <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
       )}
     </aside>
   );

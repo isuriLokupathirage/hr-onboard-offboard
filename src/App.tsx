@@ -18,32 +18,53 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import Login from "./pages/Login";
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+  if (!user) {
+    return <Login />;
+  }
+  return <>{children}</>;
+};
+
+const AppRoutes = () => {
+    return (
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/my-tasks" element={<MyTasks />} />
-          <Route path="/admin/monitoring" element={<AdminMonitoring />} />
-          <Route path="/admin/directory" element={<EmployeeDirectory />} />
-          <Route path="/admin/directory/new" element={<EmployeeForm />} />
-          <Route path="/admin/directory/:id/edit" element={<EmployeeForm />} />
-          <Route path="/admin/directory/:id" element={<EmployeeDetail />} />
-          <Route path="/workflows" element={<Workflows />} />
-          <Route path="/workflows/:id" element={<WorkflowDetail />} />
-          <Route path="/templates" element={<Templates />} />
-          <Route path="/templates/create" element={<CreateTemplate />} />
-          <Route path="/templates/:id/edit" element={<CreateTemplate />} />
-          <Route path="/start/:type" element={<StartProcess />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
+          <Route path="/admin/monitoring" element={<ProtectedRoute><AdminMonitoring /></ProtectedRoute>} />
+          <Route path="/admin/directory" element={<ProtectedRoute><EmployeeDirectory /></ProtectedRoute>} />
+          <Route path="/admin/directory/new" element={<ProtectedRoute><EmployeeForm /></ProtectedRoute>} />
+          <Route path="/admin/directory/:id/edit" element={<ProtectedRoute><EmployeeForm /></ProtectedRoute>} />
+          <Route path="/admin/directory/:id" element={<ProtectedRoute><EmployeeDetail /></ProtectedRoute>} />
+          <Route path="/workflows" element={<ProtectedRoute><Workflows /></ProtectedRoute>} />
+          <Route path="/workflows/:id" element={<ProtectedRoute><WorkflowDetail /></ProtectedRoute>} />
+          <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
+          <Route path="/templates/create" element={<ProtectedRoute><CreateTemplate /></ProtectedRoute>} />
+          <Route path="/templates/:id/edit" element={<ProtectedRoute><CreateTemplate /></ProtectedRoute>} />
+          <Route path="/start/:type" element={<ProtectedRoute><StartProcess /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    );
+}
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
+
 
 export default App;

@@ -1,7 +1,7 @@
 export type Department = 'HR' | 'IT' | 'Finance' | 'Marketing';
 export type WorkflowType = 'Onboarding' | 'Offboarding';
 export type WorkflowStatus = 'In Progress' | 'Completed' | 'Cancelled';
-export type TaskStatus = 'Not Started' | 'In Progress' | 'Completed' | 'Blocked' | 'Need Information';
+export type TaskStatus = 'Open' | 'In Progress' | 'Need Info' | 'Done';
 
 export type AccountStatus = 'Active' | 'Inactive';
 export type EmploymentType = 'Full-time' | 'Contract' | 'Part-time' | 'Intern';
@@ -51,6 +51,7 @@ export interface Task {
   requiredDate?: string;
   dueDate?: string;
   notes?: string;
+  description?: string;
   actionType?: WorkflowAction;
   outputValue?: {
     email?: string;
@@ -62,11 +63,14 @@ export interface Task {
     }>;
   };
   comments?: Comment[];
+  dependentOn?: string[]; // Array of Task IDs this task depends on
+  indent?: number; // Visual indentation level (0-3)
 }
 
 export interface Stage {
   id: string;
   name: string;
+  description?: string;
   order: number;
   tasks: Task[];
 }
@@ -92,6 +96,13 @@ export interface BankDetails {
   accountNumber: string;
   accountType: string;
   currency: string;
+}
+
+export interface EmployeeDocument {
+  name: string;
+  url?: string;
+  uploadedAt: string;
+  type?: string; // e.g., 'NIC', 'BirthCertificate'
 }
 
 export interface EmployeeAccount {
@@ -166,18 +177,45 @@ export interface EmployeeAccount {
   onboardedAt?: string;
   offboardedAt?: string;
   familyMembers?: FamilyMember[];
-  documents?: Array<{
-    name: string;
-    url?: string;
-    uploadedAt: string;
-    type?: string; // e.g., 'NIC', 'BirthCertificate'
-  }>;
+  documents?: EmployeeDocument[];
+  
+  // Offboarding Persistence
+  offboardingType?: OffboardingType;
+  exitReason?: ExitReason;
+  lastWorkingDay?: string;
+  offboardingDocuments?: string[]; // URLs or paths to documents
   
   // holidayCalendar?: string;
 }
 
+export type OffboardingType = 'Voluntary' | 'Involuntary' | 'Mutual';
+
+export type ExitReason = 
+  | 'Career Growth / Opportunity'
+  | 'Work–Life Balance'
+  | 'Job Satisfaction'
+  | 'Compensation & Benefits'
+  | 'Relocation or Life Changes'
+  | 'Health Reasons'
+  | 'End of Internship'
+  | 'End of Contract'
+  | 'Client / Project Termination'
+  | 'Performance-Related Issues'
+  | 'Misconduct / Policy Violations'
+  | 'Organizational Restructuring'
+  | 'Mutual Agreement'
+  | 'Other';
+
+export interface OffboardingDetails {
+  type: OffboardingType;
+  exitReason: ExitReason;
+  lastWorkingDay: string;
+  documents: string[];
+}
+
 export interface Workflow {
   id: string;
+  templateId?: string;
   type: WorkflowType;
   client: Client;
   employee: {
@@ -191,9 +229,12 @@ export interface Workflow {
     startDate?: string;
     endDate?: string;
   };
+  offboardingDetails?: OffboardingDetails;
   stages: Stage[];
   status: WorkflowStatus;
   cancellationReason?: string;
+  cancelledBy?: User;
+  cancelledAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -201,15 +242,19 @@ export interface Workflow {
 export interface TemplateTask {
   id: string;
   name: string;
+  description?: string;
   department: Department;
   priority?: Priority;
   requiredDate?: string;
   actionType?: WorkflowAction;
+  dependentOn?: string[];
+  indent?: number;
 }
 
 export interface TemplateStage {
   id: string;
   name: string;
+  description?: string;
   order: number;
   tasks: TemplateTask[];
 }

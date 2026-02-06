@@ -31,7 +31,7 @@ export function TaskCard({ task, onStatusChange, onEdit, readOnly }: TaskCardPro
 
   const handleToggleStatus = () => {
     if (readOnly) return;
-    onStatusChange?.(task.id, isDone ? 'Pending' : 'Done');
+    onStatusChange?.(task.id, isDone ? 'In Progress' : 'Done');
   };
 
   return (
@@ -39,7 +39,7 @@ export function TaskCard({ task, onStatusChange, onEdit, readOnly }: TaskCardPro
       className={cn(
         'task-card group animate-fade-in',
         isDone && 'opacity-75',
-        task.status === 'Need Information' && 'border-info border-2 bg-info/5',
+        task.status === 'Need Info' && 'border-info border-2 bg-info/5',
         readOnly && 'cursor-default'
       )}
       onMouseEnter={() => !readOnly && setIsHovered(true)}
@@ -91,7 +91,7 @@ export function TaskCard({ task, onStatusChange, onEdit, readOnly }: TaskCardPro
                     Edit Task
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleToggleStatus}>
-                    Mark as {isDone ? 'Pending' : 'Done'}
+                    Mark as {isDone ? 'In Progress' : 'Done'}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

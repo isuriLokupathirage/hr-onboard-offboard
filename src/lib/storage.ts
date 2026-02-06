@@ -17,10 +17,10 @@ import {
   TaskStatus 
 } from '@/types/workflow';
 
-const TEMPLATES_KEY = 'hr_workflow_templates_v5';
-const WORKFLOWS_KEY = 'hr_active_workflows_v5';
-const NOTIFICATIONS_KEY = 'hr_notifications_v5';
-const ACCOUNTS_KEY = 'hr_employee_accounts_v5';
+const TEMPLATES_KEY = 'hr_workflow_templates_v7';
+const WORKFLOWS_KEY = 'hr_active_workflows_v7';
+const NOTIFICATIONS_KEY = 'hr_notifications_v7';
+const ACCOUNTS_KEY = 'hr_employee_accounts_v7';
 
 // Custom event for workflow updates
 const WORKFLOWS_UPDATED_EVENT = 'workflowsUpdated';
@@ -229,8 +229,22 @@ export const getFlattenedTasks = (workflow: Workflow) => {
 };
 
 export const isTaskAvailable = (workflow: Workflow, taskId: string): boolean => {
-  // Relaxed logic: All tasks are available to be worked on regardless of sequence
-  return true;
+  // Find the target task
+  const allTasks = getFlattenedTasks(workflow);
+  const targetTask = allTasks.find(t => t.id === taskId);
+  
+  if (!targetTask) return false;
+  
+  // If no dependencies, it's available
+  if (!targetTask.dependentOn || targetTask.dependentOn.length === 0) {
+    return true;
+  }
+  
+  // Check if all dependent tasks are Done
+  return targetTask.dependentOn.every(depId => {
+    const depTask = allTasks.find(t => t.id === depId);
+    return depTask && depTask.status === 'Done';
+  });
 };
 
 export const getNextTask = (workflow: Workflow, currentTaskId: string) => {
@@ -331,10 +345,12 @@ export const ensureTemplateCompatibility = (template: Partial<WorkflowTemplate>)
       department: task.department || 'HR',
       assignedToId: task.assignedToId || 'unassigned',
       actionType: task.actionType,
-      status: (task.status as TaskStatus) || 'Not Started',
+      status: (task.status as TaskStatus) || 'Open',
       dueDate: task.dueDate || null,
       completedAt: task.completedAt || null,
       comments: task.comments || [],
+      dependentOn: task.dependentOn || [],
+      indent: task.indent || 0,
     }))
   }));
   
@@ -369,10 +385,12 @@ export const createTemplateFromFormData = (formData: {
       department: task.department,
       assignedToId: task.assignedToId || 'unassigned',
       actionType: task.actionType,
-      status: 'Not Started' as TaskStatus,
+      status: 'Open' as TaskStatus,
       dueDate: null,
       completedAt: null,
       comments: [],
+      dependentOn: task.dependentOn || [],
+      indent: task.indent || 0,
     }))
   }));
   
@@ -385,4 +403,52 @@ export const createTemplateFromFormData = (formData: {
     createdAt: now,
     updatedAt: now,
   };
+};
+
+// Workflow Completion Logic
+export const completeWorkflow = (workflow: Workflow): void => {
+  const updatedWorkflow: Workflow = {
+    ...workflow,
+    status: 'Completed',
+    updatedAt: new Date().toISOString(),
+  };
+
+  updateWorkflow(updatedWorkflow);
+
+  // Handle Offboarding Persistence
+  if (workflow.type === 'Offboarding') {
+    const existingAccounts = getEmployeeAccounts();
+    const existingAccount = existingAccounts.find(
+      (a) => a.email === workflow.employee.email
+    );
+
+    if (existingAccount) {
+      // Collect documents from workflow tasks
+      const allDocuments = workflow.stages.flatMap(stage => 
+        stage.tasks.flatMap(task => task.outputValue?.documents || [])
+      ).map(doc => doc.url || doc.name); // Store as string paths/names for simplicity in EmployeeAccount
+
+      const updatedAccount: EmployeeAccount = {
+        ...existingAccount,
+        status: 'Inactive',
+        offboardedAt: new Date().toISOString(),
+        offboardingType: workflow.offboardingDetails?.type,
+        exitReason: workflow.offboardingDetails?.exitReason,
+        lastWorkingDay: workflow.offboardingDetails?.lastWorkingDay,
+        offboardingDocuments: allDocuments,
+      };
+
+      updateEmployeeAccount(updatedAccount);
+    }
+  } else if (workflow.type === 'Onboarding') {
+      // Handle Onboarding Completion (existing logic refactored here optionally, or left in WorkflowDetail)
+      // For now, we will focus on Offboarding persistence as requested.
+      // But we can ensure Onboarding also creates/activates the user here if we want to unify everything.
+  }
+  
+  addNotification({
+    type: 'workflow_completed',
+    message: `${workflow.type} workflow for ${workflow.employee.name} has been completed!`,
+    workflowId: workflow.id,
+  });
 };

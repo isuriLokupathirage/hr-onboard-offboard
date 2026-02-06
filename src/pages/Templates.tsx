@@ -22,7 +22,7 @@ import {
 import { WorkflowTypeBadge } from '@/components/ui/status-badge';
 import { WorkflowType, WorkflowTemplate } from '@/types/workflow';
 import { toast } from '@/hooks/use-toast';
-import { getTemplates, deleteTemplate } from '@/lib/storage';
+import { getTemplates, deleteTemplate, getWorkflows } from '@/lib/storage';
 
 export default function Templates() {
   const navigate = useNavigate();
@@ -54,7 +54,7 @@ export default function Templates() {
   };
 
   return (
-    <AppLayout title="Workflow Templates" subtitle="Manage reusable workflow templates">
+    <AppLayout title="Check List Templates" subtitle="Manage reusable checklists">
       <div className="space-y-6">
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -130,30 +130,49 @@ export default function Templates() {
                       <TableCell>{totalTasks}</TableCell>
                       <TableCell>{new Date(template.updatedAt).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/templates/${template.id}/edit`)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDuplicate(template.id)}
-                          >
-                            <Copy className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(template.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                          <div className="flex items-center justify-end gap-1">
+                            {(() => {
+                              const activeTemplateIds = new Set(
+                                getWorkflows()
+                                  .filter(w => w.status === 'In Progress' && w.templateId)
+                                  .map(w => w.templateId)
+                              );
+                              const isActive = activeTemplateIds.has(template.id);
+                              
+                              return (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => navigate(`/templates/${template.id}/edit`)}
+                                    disabled={isActive}
+                                    title={isActive ? "Cannot edit template currently used in active workflows" : "Edit Template"}
+                                    className={isActive ? "opacity-50 cursor-not-allowed" : ""}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDuplicate(template.id)}
+                                    title="Duplicate Template"
+                                  >
+                                    <Copy className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDelete(template.id)}
+                                    disabled={isActive}
+                                    className={isActive ? "opacity-50 cursor-not-allowed" : "text-destructive hover:text-destructive"}
+                                    title={isActive ? "Cannot delete template currently used in active workflows" : "Delete Template"}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              );
+                            })()}
+                          </div>
                       </TableCell>
                     </TableRow>
                   );
