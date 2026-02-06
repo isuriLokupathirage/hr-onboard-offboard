@@ -4,9 +4,17 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { ArrowLeft, User, Mail, Phone, MapPin, Building2, Calendar, FileText, CreditCard, UserMinus, Download, ExternalLink } from 'lucide-react';
-import { getEmployeeAccounts } from '@/lib/storage';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ArrowLeft, User, Mail, Phone, MapPin, Building2, Calendar, FileText, CreditCard, UserMinus, Download, ExternalLink, Ban, EllipsisVertical, Edit } from 'lucide-react';
+import { getEmployeeAccounts, updateEmployeeAccount } from '@/lib/storage';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { EmployeeDocument } from '@/types/workflow';
 
@@ -14,8 +22,26 @@ export default function EmployeeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [selectedDocument, setSelectedDocument] = useState<EmployeeDocument | null>(null);
+  const [deactivateConfirmOpen, setDeactivateConfirmOpen] = useState(false);
   const accounts = getEmployeeAccounts();
   const employee = accounts.find(a => a.id === id);
+
+  const handleDeactivate = () => {
+      if (!employee) return;
+      
+      updateEmployeeAccount({
+          ...employee,
+          status: 'Inactive'
+      });
+      
+      setDeactivateConfirmOpen(false);
+      // Force reload or just navigate/wait for re-render if using storage listener (EmployeeDetail currently doesn't listen)
+      // Since EmployeeDetail uses getEmployeeAccounts() directly in render, it won't auto-update unless we trigger a re-render or reload.
+      // However, usually navigating away or state update is enough.
+      // Let's reload to be safe or navigate to directory.
+      
+      navigate('/admin/directory');
+  };
 
   if (!employee) {
     return (
@@ -73,21 +99,59 @@ export default function EmployeeDetail() {
             </div>
           </div>
           <div className="flex gap-2">
-            {employee.status === 'Active' && (
-              <Button 
-                variant="destructive"
-                onClick={() => navigate(`/start/offboarding?employeeId=${employee.id}`)}
-                className="gap-2"
-              >
-                <UserMinus className="w-4 h-4" />
-                Offboard Employee
-              </Button>
-            )}
-            <Button onClick={() => navigate(`/admin/directory/${employee.id}/edit`)}>
-              Edit Profile
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <EllipsisVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate(`/admin/directory/${employee.id}/edit`)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </DropdownMenuItem>
+                
+                {employee.status === 'Active' && (
+                  <>
+                    <DropdownMenuItem onClick={() => navigate(`/start/offboarding?employeeId=${employee.id}`)}>
+                      <UserMinus className="w-4 h-4 mr-2" />
+                      Offboard Employee
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => setDeactivateConfirmOpen(true)}
+                    >
+                      <Ban className="w-4 h-4 mr-2" />
+                      Deactivate Account
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
+
+        {/* Deactivation Confirmation Dialog */}
+        <Dialog open={deactivateConfirmOpen} onOpenChange={setDeactivateConfirmOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Deactivate Employee Account</DialogTitle>
+                    <DialogDescription>
+                        Are you sure you want to deactivate <strong>{employee.name}</strong>? 
+                        This action will revoke their access to the system immediately. 
+                        They will be moved to the Inactive list.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setDeactivateConfirmOpen(false)}>Cancel</Button>
+                    <Button variant="destructive" onClick={handleDeactivate}>Yes, Deactivate</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
