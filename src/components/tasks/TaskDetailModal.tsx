@@ -17,7 +17,8 @@ import {
     Building2, 
     User,
     UserPlus,
-    UserMinus
+    UserMinus,
+    Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -113,6 +114,31 @@ export function TaskDetailModal({
           <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
              {/* Left Column: Details */}
              <div className="w-full md:w-2/5 p-6 border-b md:border-b-0 md:border-r bg-muted/5 space-y-6 overflow-y-auto">
+                 
+                 {!isAvailable && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-md p-3 flex items-start gap-3">
+                        <Lock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                        <div>
+                            <h4 className="text-sm font-medium text-amber-800">Task Locked</h4>
+                            <div className="text-xs text-amber-700 mt-1">
+                                <p>This task is locked until the following dependencies are completed:</p>
+                                <ul className="mt-2 space-y-1">
+                                    {workflow.stages
+                                        .flatMap(s => s.tasks)
+                                        .filter(t => (task.dependentOn || []).includes(t.id) && t.status !== 'Done')
+                                        .map(dep => (
+                                            <li key={dep.id} className="flex items-center gap-2 font-medium">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                                                {dep.name}
+                                                <span className="opacity-75 font-normal">({dep.status})</span>
+                                            </li>
+                                        ))
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                 )}
                  
                  {task.description && (
                      <div>

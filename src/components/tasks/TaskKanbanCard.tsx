@@ -47,9 +47,9 @@ export function TaskKanbanCard({ task, workflow, stage, isAvailable = true, onSt
     <div 
       className={cn(
         "bg-card border border-border rounded-lg p-3 shadow-sm transition-all hover:shadow-md cursor-pointer",
-        !isAvailable && "opacity-60 grayscale-[0.5] cursor-not-allowed"
+        !isAvailable && "opacity-60 grayscale-[0.5]"
       )}
-      onClick={() => isAvailable && onClick?.()}
+      onClick={() => onClick?.()}
     >
       {/* Task Name */}
       <div className="flex items-start justify-between gap-2 mb-2">

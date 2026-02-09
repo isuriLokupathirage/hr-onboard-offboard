@@ -53,6 +53,8 @@ import { toast } from '@/hooks/use-toast';
 import { TaskCommentModal } from '@/components/tasks/TaskCommentModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PriorityBadge } from '@/components/tasks/PriorityBadge';
+import { EmployeeDetailModal } from '@/components/employee/EmployeeDetailModal';
+import { Info } from 'lucide-react';
 // ... existing imports
 
 
@@ -85,6 +87,9 @@ export default function AdminMonitoring() {
   
   // Delete confirm state
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
+
+  // View Employee state
+  const [viewWorkflowEmployee, setViewWorkflowEmployee] = useState<Workflow | null>(null);
 
   const loadWorkflows = useCallback(() => {
     setWorkflows(getWorkflows());
@@ -334,6 +339,7 @@ export default function AdminMonitoring() {
                   onDelete={(e) => handleDeleteWorkflow(e, workflow)}
                   onCancel={(e) => handleInitiateCancel(e, workflow)}
                   onViewActivity={(task) => setActiveTaskData({ task, workflow })}
+                  onViewEmployee={() => setViewWorkflowEmployee(workflow)}
                 />
               ))
             ) : (
@@ -353,6 +359,7 @@ export default function AdminMonitoring() {
                   onToggle={() => toggleWorkflow(workflow.id)}
                   onDelete={(e) => handleDeleteWorkflow(e, workflow)}
                   onViewActivity={(task) => setActiveTaskData({ task, workflow })}
+                  onViewEmployee={() => setViewWorkflowEmployee(workflow)}
                 />
               ))
             ) : (
@@ -372,6 +379,7 @@ export default function AdminMonitoring() {
                   onToggle={() => toggleWorkflow(workflow.id)}
                   onDelete={(e) => handleDeleteWorkflow(e, workflow)}
                   onViewActivity={(task) => setActiveTaskData({ task, workflow })}
+                  onViewEmployee={() => setViewWorkflowEmployee(workflow)}
                 />
               ))
             ) : (
@@ -474,6 +482,31 @@ export default function AdminMonitoring() {
         }}
       />
 
+      <EmployeeDetailModal
+        employee={viewWorkflowEmployee ? {
+            id: viewWorkflowEmployee.employee.email ? getEmployeeAccounts().find(a => a.email === viewWorkflowEmployee.employee.email)?.id || 'temp-id' : 'temp-id',
+            name: viewWorkflowEmployee.employee.name,
+            email: viewWorkflowEmployee.employee.email || '',
+            department: viewWorkflowEmployee.employee.department,
+            position: viewWorkflowEmployee.employee.position,
+            employmentType: viewWorkflowEmployee.employee.employmentType,
+            client: viewWorkflowEmployee.client,
+            status: 'Active',
+            title: viewWorkflowEmployee.employee.title,
+            joinedDate: viewWorkflowEmployee.employee.startDate,
+            gender: viewWorkflowEmployee.employee.gender,
+            phone: viewWorkflowEmployee.employee.phone,
+            countryCode: viewWorkflowEmployee.employee.countryCode,
+            address: viewWorkflowEmployee.employee.address,
+            dateOfBirth: viewWorkflowEmployee.employee.dateOfBirth,
+            // Try to merge with full account details if available
+            ...(viewWorkflowEmployee.employee.email ? getEmployeeAccounts().find(a => a.email === viewWorkflowEmployee.employee.email) : {})
+        } : null}
+        open={!!viewWorkflowEmployee}
+        onOpenChange={(open) => !open && setViewWorkflowEmployee(null)}
+        isCreating={false}
+      />
+
     </AppLayout>
   );
 }
@@ -488,9 +521,10 @@ interface WorkflowMonitorCardProps {
   onDelete?: (e: React.MouseEvent) => void;
   onCancel?: (e: React.MouseEvent) => void;
   onViewActivity: (task: Task) => void;
+  onViewEmployee: () => void;
 }
 
-function WorkflowMonitorCard({ workflow, isExpanded, onToggle, onEdit, onDelete, onCancel, onViewActivity }: WorkflowMonitorCardProps) {
+function WorkflowMonitorCard({ workflow, isExpanded, onToggle, onEdit, onDelete, onCancel, onViewActivity, onViewEmployee }: WorkflowMonitorCardProps) {
   const progress = workflow.totalTasks > 0 
     ? Math.round((workflow.completedTasks / workflow.totalTasks) * 100) 
     : 0;
@@ -574,6 +608,20 @@ function WorkflowMonitorCard({ workflow, isExpanded, onToggle, onEdit, onDelete,
 
             {/* Actions */}
             <div className="flex items-center gap-1 border-l border-border pl-4">
+              {onViewEmployee && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                  title="View Employee Details"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewEmployee();
+                  }}
+                >
+                  <Info className="w-4 h-4" />
+                </Button>
+              )}
               {workflow.status === 'In Progress' && onEdit && (
                 <Button
                   variant="ghost"

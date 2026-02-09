@@ -129,6 +129,7 @@ export interface EmployeeAccount {
   email: string; // Office Email
   personalEmail?: string;
   phone?: string; // Personal Mobile 1
+  countryCode?: string;
   homePhone?: string; // Home Number
   address?: string; // Permanent Address
   temporaryAddress?: string;
@@ -220,14 +221,20 @@ export interface Workflow {
   client: Client;
   employee: {
     name: string;
+    title?: string;
     email?: string;
     position: string;
+    dateOfBirth?: string;
     department: Department;
 
     employmentType: EmploymentType;
     supervisorId?: string;
     startDate?: string;
     endDate?: string;
+    gender?: string;
+    phone?: string;
+    countryCode?: string;
+    address?: string;
   };
   offboardingDetails?: OffboardingDetails;
   stages: Stage[];

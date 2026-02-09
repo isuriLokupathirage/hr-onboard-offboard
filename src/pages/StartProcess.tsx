@@ -55,9 +55,15 @@ export default function StartProcess() {
   const [step, setStep] = useState(1);
   const [clientId, setClientId] = useState('');
   const [employeeId, setEmployeeId] = useState(''); // Acts as employee Name for Onboarding
+  const [employeeTitle, setEmployeeTitle] = useState('Mr');
   const [employeePosition, setEmployeePosition] = useState('');
   const [employeeEmail, setEmployeeEmail] = useState('');
+
   const [employeeDate, setEmployeeDate] = useState('');
+  const [employeeGender, setEmployeeGender] = useState('');
+  const [employeeCountryCode, setEmployeeCountryCode] = useState('+94');
+  const [employeePhone, setEmployeePhone] = useState('');
+  const [employeeAddress, setEmployeeAddress] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [stages, setStages] = useState<StageWithAssignments[]>([]);
   const employeeAccounts = useMemo(() => getEmployeeAccounts(), []);
@@ -85,9 +91,15 @@ export default function StartProcess() {
         // Employee Info
         if (workflowType === 'Onboarding') {
           setEmployeeId(startWorkflow.employee.name);
+          setEmployeeTitle(startWorkflow.employee.title || 'Mr');
           setEmployeeEmail(startWorkflow.employee.email || '');
           setEmployeePosition(startWorkflow.employee.position);
+          setEmployeePosition(startWorkflow.employee.position);
           setEmployeeDate(startWorkflow.employee.startDate || '');
+          setEmployeeGender(startWorkflow.employee.gender || '');
+          setEmployeeCountryCode(startWorkflow.employee.countryCode || '+94');
+          setEmployeePhone(startWorkflow.employee.phone || '');
+          setEmployeeAddress(startWorkflow.employee.address || '');
         } else {
             // Reverse lookup for Offboarding to find the distinct Employee ID if possible
             const accounts = getEmployeeAccounts();
@@ -284,6 +296,7 @@ export default function StartProcess() {
       employee: workflowType === 'Onboarding'
         ? {
             name: employeeName,
+            title: employeeTitle,
             email: currentEmail,
             position: currentPosition,
             department: currentDepartment as Department,
@@ -292,6 +305,11 @@ export default function StartProcess() {
             supervisorId: undefined,
             startDate: undefined,
             endDate: undefined,
+
+            gender: employeeGender,
+            phone: employeePhone,
+            countryCode: employeeCountryCode,
+            address: employeeAddress,
             // Preserve other fields if updating
             ...(existingWorkflow?.employee || {})
           }
@@ -458,11 +476,27 @@ export default function StartProcess() {
                 <>
                   <div className="space-y-2">
                     <Label>Full Name *</Label>
-                    <Input
-                      placeholder="Enter full name"
-                      value={employeeId}
-                      onChange={(e) => setEmployeeId(e.target.value)}
-                    />
+                    <div className="flex gap-2">
+                        <Select value={employeeTitle} onValueChange={setEmployeeTitle}>
+                            <SelectTrigger className="w-[100px]">
+                                <SelectValue placeholder="Title" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Mr">Mr</SelectItem>
+                                <SelectItem value="Mrs">Mrs</SelectItem>
+                                <SelectItem value="Miss">Miss</SelectItem>
+                                <SelectItem value="Ms">Ms</SelectItem>
+                                <SelectItem value="Dr">Dr</SelectItem>
+                                <SelectItem value="Prof">Prof</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Input
+                        placeholder="Enter full name"
+                        value={employeeId}
+                        onChange={(e) => setEmployeeId(e.target.value)}
+                        className="flex-1"
+                        />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Date of Birth *</Label>
@@ -503,6 +537,55 @@ export default function StartProcess() {
                       placeholder="Enter job title"
                       value={employeePosition}
                       onChange={(e) => setEmployeePosition(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Gender</Label>
+                    <Select value={employeeGender} onValueChange={setEmployeeGender}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Mobile Number</Label>
+                    <div className="flex gap-2">
+                        <Select value={employeeCountryCode} onValueChange={setEmployeeCountryCode}>
+                            <SelectTrigger className="w-[100px]">
+                                <SelectValue placeholder="Code" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="+94">🇱🇰 +94</SelectItem>
+                                <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                                <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                                <SelectItem value="+91">🇮🇳 +91</SelectItem>
+                                <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                                <SelectItem value="+65">🇸🇬 +65</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Input
+                        placeholder="7X XXX XXXX"
+                        value={employeePhone}
+                        onChange={(e) => setEmployeePhone(e.target.value)}
+                        className="flex-1"
+                        />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Address</Label>
+                    <Textarea
+                      placeholder="Enter permanent address"
+                      value={employeeAddress}
+                      onChange={(e) => setEmployeeAddress(e.target.value)}
+                      className="resize-none"
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">

@@ -104,12 +104,12 @@ export function TaskExecutionCard({ task, workflow, stage, isAvailable = true, o
   return (
     <div 
       className="bg-card border border-border rounded-xl overflow-hidden transition-shadow hover:shadow-md cursor-pointer"
-      onClick={() => isAvailable && onClick?.()}
+      onClick={() => onClick?.()}
     >
       {/* Main Content */}
       <div className={cn(
         "p-3",
-        !isAvailable && "opacity-60 grayscale-[0.5] cursor-not-allowed"
+        !isAvailable && "opacity-60 grayscale-[0.5]"
       )}>
         <div className="flex items-center gap-4">
           {/* Status Indicator */}
@@ -126,6 +126,12 @@ export function TaskExecutionCard({ task, workflow, stage, isAvailable = true, o
               <div className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-2">
                      <h3 className="font-semibold text-foreground text-sm">{task.name}</h3>
+                     {!isAvailable && (
+                        <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                          <Lock className="w-3 h-3" />
+                          <span>Locked</span>
+                        </div>
+                     )}
                      {/* Workflow Type Badge */}
                      <div className={cn(
                         'px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center gap-1',

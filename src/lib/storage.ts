@@ -17,10 +17,10 @@ import {
   TaskStatus 
 } from '@/types/workflow';
 
-const TEMPLATES_KEY = 'hr_workflow_templates_v7';
-const WORKFLOWS_KEY = 'hr_active_workflows_v7';
-const NOTIFICATIONS_KEY = 'hr_notifications_v7';
-const ACCOUNTS_KEY = 'hr_employee_accounts_v7';
+const TEMPLATES_KEY = 'hr_workflow_templates_v8';
+const WORKFLOWS_KEY = 'hr_active_workflows_v8';
+const NOTIFICATIONS_KEY = 'hr_notifications_v8';
+const ACCOUNTS_KEY = 'hr_employee_accounts_v8';
 
 // Custom event for workflow updates
 const WORKFLOWS_UPDATED_EVENT = 'workflowsUpdated';

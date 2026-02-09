@@ -196,7 +196,7 @@ export function EmployeeDetailModal({ employee, open, onOpenChange, onSave, isCr
               </div>
               <div>
                 <DialogTitle className="text-2xl font-bold">
-                    {isCreating ? 'Create New Employee' : (isEditing ? 'Edit Employee' : employee?.name)}
+                    {isCreating ? 'Create New Employee' : (isEditing ? 'Edit Employee' : `${employee?.title ? employee.title + ' ' : ''}${employee?.name}`)}
                 </DialogTitle>
                 
                 {!isCreating && employee && (
@@ -263,9 +263,39 @@ export function EmployeeDetailModal({ employee, open, onOpenChange, onSave, isCr
           <section>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Work Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {isCreating && (
+                {(isCreating || isEditing) && (
                     <div className="md:col-span-2">
-                         {renderField(UserIcon, "Full Name", "name", "e.g. Kasun Perera")}
+                         {/* Full Name with Title */ }
+                        <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">Full Name</Label>
+                            <div className="flex gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <UserIcon className="w-4 h-4 text-muted-foreground" />
+                                </div>
+                                <Select 
+                                    value={formData.title || 'Mr'} 
+                                    onValueChange={(val) => setFormData(prev => ({ ...prev, title: val }))}
+                                >
+                                    <SelectTrigger className="w-[80px] h-9">
+                                        <SelectValue placeholder="Title" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Mr">Mr</SelectItem>
+                                        <SelectItem value="Mrs">Mrs</SelectItem>
+                                        <SelectItem value="Miss">Miss</SelectItem>
+                                        <SelectItem value="Ms">Ms</SelectItem>
+                                        <SelectItem value="Dr">Dr</SelectItem>
+                                        <SelectItem value="Prof">Prof</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Input 
+                                    value={formData.name || ''} 
+                                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                                    placeholder="e.g. Kasun Perera"
+                                    className="h-9 flex-1"
+                                />
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -354,7 +384,6 @@ export function EmployeeDetailModal({ employee, open, onOpenChange, onSave, isCr
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {renderField(Calendar, "Date of Birth", "dateOfBirth")}
               {renderField(UserIcon, "Gender", "gender")}
-              {renderField(Globe, "Nationality", "nationality")}
               {renderField(MapPin, "Address", "address")}
             </div>
           </section>
@@ -367,8 +396,46 @@ export function EmployeeDetailModal({ employee, open, onOpenChange, onSave, isCr
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Contact & Emergency</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {renderField(Mail, "Work Email", "email")}
-                {renderField(Mail, "Personal Email", "personalEmail")}
-                {renderField(Phone, "Phone Number", "phone")}
+                
+                {/* Phone with Country Code */}
+                {isEditing ? (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Phone Number</Label>
+                      <div className="flex gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+                           <Phone className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                        <Select 
+                            value={formData.countryCode || '+94'} 
+                            onValueChange={(val) => setFormData(prev => ({ ...prev, countryCode: val }))}
+                        >
+                            <SelectTrigger className="w-[80px] h-9">
+                                <SelectValue placeholder="Code" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="+94">🇱🇰 +94</SelectItem>
+                                <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                                <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                                <SelectItem value="+91">🇮🇳 +91</SelectItem>
+                                <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                                <SelectItem value="+65">🇸🇬 +65</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Input 
+                          value={formData.phone || ''} 
+                          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="7X XXX XXXX"
+                          className="h-9 flex-1"
+                        />
+                      </div>
+                    </div>
+                ) : (
+                    <DetailItem 
+                        icon={Phone} 
+                        label="Phone Number" 
+                        value={formData.phone ? `${formData.countryCode || '+94'} ${formData.phone}` : '-'} 
+                    />
+                )}
                 </div>
             </section>
           )}
@@ -379,7 +446,38 @@ export function EmployeeDetailModal({ employee, open, onOpenChange, onSave, isCr
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Additional Contact</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                          {renderField(Mail, "Personal Email", "personalEmail")}
-                         {renderField(Phone, "Phone Number", "phone")}
+                         
+                         {/* Phone with Country Code */}
+                        <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">Phone Number</Label>
+                            <div className="flex gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <Phone className="w-4 h-4 text-muted-foreground" />
+                                </div>
+                                <Select 
+                                    value={formData.countryCode || '+94'} 
+                                    onValueChange={(val) => setFormData(prev => ({ ...prev, countryCode: val }))}
+                                >
+                                    <SelectTrigger className="w-[80px] h-9">
+                                        <SelectValue placeholder="Code" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="+94">🇱🇰 +94</SelectItem>
+                                        <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                                        <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                                        <SelectItem value="+91">🇮🇳 +91</SelectItem>
+                                        <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                                        <SelectItem value="+65">🇸🇬 +65</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Input 
+                                    value={formData.phone || ''} 
+                                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                                    placeholder="7X XXX XXXX"
+                                    className="h-9 flex-1"
+                                />
+                            </div>
+                        </div>
                     </div>
                 </section>
              )}
