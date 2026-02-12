@@ -349,12 +349,13 @@ export default function AdminMonitoring() {
                   key={workflow.id}
                   workflow={workflow}
                   isExpanded={expandedWorkflows.has(workflow.id)}
-                  onToggle={() => toggleWorkflow(workflow.id)}
+                  onToggle={(e) => toggleWorkflow(workflow.id)}
                   onEdit={(e) => handleEditWorkflow(e, workflow)}
                   onDelete={(e) => handleDeleteWorkflow(e, workflow)}
                   onCancel={(e) => handleInitiateCancel(e, workflow)}
                   onViewActivity={(task) => setActiveTaskData({ task, workflow })}
                   onViewEmployee={() => setViewWorkflowEmployee(workflow)}
+                  onNavigate={() => navigate(`/workflows/${workflow.id}`)}
                 />
               ))
             ) : (
@@ -371,10 +372,11 @@ export default function AdminMonitoring() {
                   key={workflow.id}
                   workflow={workflow}
                   isExpanded={expandedWorkflows.has(workflow.id)}
-                  onToggle={() => toggleWorkflow(workflow.id)}
+                  onToggle={(e) => toggleWorkflow(workflow.id)}
                   onDelete={(e) => handleDeleteWorkflow(e, workflow)}
                   onViewActivity={(task) => setActiveTaskData({ task, workflow })}
                   onViewEmployee={() => setViewWorkflowEmployee(workflow)}
+                  onNavigate={() => navigate(`/workflows/${workflow.id}`)}
                 />
               ))
             ) : (
@@ -391,10 +393,11 @@ export default function AdminMonitoring() {
                   key={workflow.id}
                   workflow={workflow}
                   isExpanded={expandedWorkflows.has(workflow.id)}
-                  onToggle={() => toggleWorkflow(workflow.id)}
+                  onToggle={(e) => toggleWorkflow(workflow.id)}
                   onDelete={(e) => handleDeleteWorkflow(e, workflow)}
                   onViewActivity={(task) => setActiveTaskData({ task, workflow })}
                   onViewEmployee={() => setViewWorkflowEmployee(workflow)}
+                  onNavigate={() => navigate(`/workflows/${workflow.id}`)}
                 />
               ))
             ) : (
@@ -579,15 +582,16 @@ export default function AdminMonitoring() {
 interface WorkflowMonitorCardProps {
   workflow: WorkflowWithStats;
   isExpanded: boolean;
-  onToggle: () => void;
+  onToggle: (e: React.MouseEvent) => void;
   onEdit?: (e: React.MouseEvent) => void;
   onDelete?: (e: React.MouseEvent) => void;
   onCancel?: (e: React.MouseEvent) => void;
   onViewActivity: (task: Task) => void;
   onViewEmployee: () => void;
+  onNavigate: () => void;
 }
 
-function WorkflowMonitorCard({ workflow, isExpanded, onToggle, onEdit, onDelete, onCancel, onViewActivity, onViewEmployee }: WorkflowMonitorCardProps) {
+function WorkflowMonitorCard({ workflow, isExpanded, onToggle, onEdit, onDelete, onCancel, onViewActivity, onViewEmployee, onNavigate }: WorkflowMonitorCardProps) {
   const progress = workflow.totalTasks > 0 
     ? Math.round((workflow.completedTasks / workflow.totalTasks) * 100) 
     : 0;
@@ -603,10 +607,18 @@ function WorkflowMonitorCard({ workflow, isExpanded, onToggle, onEdit, onDelete,
       {/* Header */}
       <div 
         className="p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-        onClick={onToggle}
+        onClick={onNavigate}
       >
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle(e);
+            }}
+          >
             {isExpanded ? (
               <ChevronDown className="w-4 h-4" />
             ) : (

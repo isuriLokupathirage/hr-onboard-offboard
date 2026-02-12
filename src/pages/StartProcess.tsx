@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, User, Check, FileText } from 'lucide-react';
+import { ArrowLeft, ArrowRight, User as UserIcon, Check, FileText } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { clients, users } from '@/data/mockData';
 import { getEmployeeAccounts } from '@/lib/storage';
-import { WorkflowType, Department, Workflow, EmploymentType } from '@/types/workflow';
+import { WorkflowType, Department, Workflow, EmploymentType, User } from '@/types/workflow';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { getTemplates, updateWorkflow, updateEmployeeAccount, getWorkflowById } from '@/lib/storage';
@@ -42,6 +42,162 @@ interface StageWithAssignments {
   order: number;
   description?: string;
   tasks: TaskAssignment[];
+}
+
+import { ChevronDown, ChevronUp, Paperclip } from 'lucide-react';
+
+function CollapsibleTaskRow({ task, users, onUpdate }: { task: TaskAssignment; users: User[]; onUpdate: (field: keyof TaskAssignment, value: any) => void }) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    // Filter users by department
+    const departmentUsers = users.filter((u) => u.department === task.department);
+
+    return (
+        <div className={cn(
+            "bg-card border rounded-xl p-4 transition-all shadow-sm",
+            isOpen ? "border-accent ring-1 ring-accent" : "border-border hover:border-accent/40"
+        )}>
+            {/* Header / Summary */}
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground shrink-0">
+                    {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+                
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm text-foreground truncate">{task.taskName}</span>
+                         {/* Attachments Indicator (Summary) */}
+                        {task.attachments && task.attachments.length > 0 && !isOpen && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md shrink-0">
+                                <Paperclip className="h-3 w-3" />
+                                <span>{task.attachments.length}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <span className={cn(
+                    'px-2 py-0.5 rounded text-[10px] font-medium border shrink-0',
+                    task.department === 'HR' && 'bg-purple-100 text-purple-700 border-purple-200',
+                    task.department === 'IT' && 'bg-blue-100 text-blue-700 border-blue-200',
+                    task.department === 'Finance' && 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                    task.department === 'Marketing' && 'bg-orange-100 text-orange-700 border-orange-200'
+                )}>
+                    {task.department}
+                </span>
+            </div>
+
+            {/* Expanded Content */}
+            {isOpen && (
+                <div className="mt-4 pl-9 space-y-6 animate-in fade-in slide-in-from-top-1">
+                    
+                    {/* Top Row: Assignment (Editable) */}
+                    <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
+                        <Label className="text-xs font-semibold text-foreground uppercase tracking-wider mb-2 block">Assign To</Label>
+                        <Select
+                            value={task.assignedToId}
+                            onValueChange={(v) => onUpdate('assignedToId', v)}
+                        >
+                            <SelectTrigger className="h-9 w-full bg-background">
+                                <SelectValue placeholder="Select team member..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {departmentUsers.length > 0 ? (
+                                    departmentUsers.map((user) => (
+                                        <SelectItem key={user.id} value={user.id}>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] text-primary font-medium">
+                                                    {user.name.charAt(0)}
+                                                </div>
+                                                {user.name}
+                                            </div>
+                                        </SelectItem>
+                                    ))
+                                ) : (
+                                    <div className="p-2 text-sm text-muted-foreground">No users in {task.department}</div>
+                                )}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Left Column: Task Details (Read Only) */}
+                        <div className="space-y-4">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Task Details</Label>
+                            
+                            <div className="space-y-3">
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] uppercase text-muted-foreground">Description</Label>
+                                    <div className="text-sm text-foreground bg-muted/20 p-2 rounded border border-border/40 min-h-[40px]">
+                                        {task.description || "No description provided."}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                     <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase text-muted-foreground">Department</Label>
+                                        <div className="text-sm font-medium">{task.department}</div>
+                                     </div>
+                                     <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase text-muted-foreground">Priority</Label>
+                                        <div className="flex items-center gap-1.5">
+                                            <Flag className={cn(
+                                                "w-3.5 h-3.5",
+                                                task.priority === 'High' ? "text-red-500 fill-red-500" :
+                                                task.priority === 'Medium' ? "text-yellow-500 fill-yellow-500" :
+                                                "text-blue-500 fill-blue-500"
+                                            )} />
+                                            <span className="text-sm font-medium">{task.priority}</span>
+                                        </div>
+                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Column: Context (Read Only) */}
+                        <div className="space-y-4">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Context & Attachments</Label>
+                            
+                            <div className="space-y-3">
+                                {/* Attachments */}
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] uppercase text-muted-foreground flex items-center gap-1">
+                                        <Paperclip className="w-3 h-3" /> Attachments
+                                    </Label>
+                                    {task.attachments && task.attachments.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {task.attachments.map((file, i) => (
+                                                <div key={i} className="flex items-center gap-1.5 bg-muted px-2.5 py-1.5 rounded-md border border-border text-xs">
+                                                    <FileText className="w-3 h-3 text-muted-foreground" />
+                                                    <span className="max-w-[150px] truncate" title={file}>{file}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-xs text-muted-foreground italic">No attachments</div>
+                                    )}
+                                </div>
+
+                                {/* Dependencies */}
+                                {task.dependentOn && task.dependentOn.length > 0 && (
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase text-muted-foreground">Dependencies</Label>
+                                        <div className="flex flex-wrap gap-1">
+                                             {task.dependentOn.map(depId => (
+                                                 <span key={depId} className="text-[10px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded border border-red-100">
+                                                     Prerequisite: {depId}
+                                                 </span>
+                                             ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }
 
 export default function StartProcess() {
@@ -191,7 +347,7 @@ export default function StartProcess() {
     }
   }, [selectedTemplateId, templates]);
 
-  const updateTaskAssignment = (stageId: string, taskId: string, field: keyof TaskAssignment, value: string) => {
+  const updateTaskAssignment = (stageId: string, taskId: string, field: keyof TaskAssignment, value: any) => {
     setStages((prev) =>
       prev.map((stage) =>
         stage.id === stageId
@@ -272,22 +428,31 @@ export default function StartProcess() {
       ? clients.find(c => c.id === clientId)!
       : selectedEmployee?.client;
 
-    // Save documents to Employee Profile if Offboarding
-    if (workflowType === 'Offboarding' && selectedEmployee && uploadedFiles.length > 0) {
+    // Update Employee Profile with Offboarding Details if Offboarding
+    if (workflowType === 'Offboarding' && selectedEmployee) {
       const newDocuments = uploadedFiles.map(file => ({
         name: file.name,
         // In a real app, this would be the uploaded URL. For prototype, we create a temporary URL
-        url: URL.createObjectURL(file), // Note: This URL will only work in the current session. 
-        // For persistent prototype, we could arguably just not set URL or set a dummy URL if files aren't actually uploaded to a server/storage
+        url: URL.createObjectURL(file), 
         uploadedAt: new Date().toISOString(),
         type: 'Offboarding Document'
       }));
 
       const updatedEmployee = {
         ...selectedEmployee,
+        offboardingType: offboardingType,
+        exitReason: exitReason as ExitReason,
+        resignationLetterDate: resignationLetterDate || undefined,
+        resignationEffectiveDate: resignationEffectiveDate || undefined,
+        lastWorkingDay: employeeDate,
         documents: [
           ...(selectedEmployee.documents || []),
           ...newDocuments
+        ],
+        // Also map offboarding documents to the specific field if needed, or just keep them in general documents
+        offboardingDocuments: [
+            ...(selectedEmployee.offboardingDocuments || []),
+            ...uploadedFiles.map(f => f.name)
         ]
       };
 
@@ -899,82 +1064,12 @@ export default function StartProcess() {
                     </div>
                     <div className="p-4 space-y-3">
                       {stage.tasks.map((task) => (
-                        <div
-                          key={task.taskId}
-                          className="p-3 bg-muted/30 rounded-md space-y-3"
-                        >
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-3">
-                              <span className="flex-1 text-sm text-foreground font-medium">{task.taskName}</span>
-                              <span className={cn(
-                                'px-2 py-0.5 rounded text-xs font-medium border',
-                                task.department === 'HR' && 'bg-purple-100 text-purple-700 border-purple-200',
-                                task.department === 'IT' && 'bg-blue-100 text-blue-700 border-blue-200',
-                                task.department === 'Finance' && 'bg-emerald-100 text-emerald-700 border-emerald-200',
-                                task.department === 'Marketing' && 'bg-orange-100 text-orange-700 border-orange-200'
-                              )}>
-                                {task.department}
-                              </span>
-                            </div>
-                            {task.description && (
-                                <p className="text-xs text-muted-foreground ml-1">{task.description}</p>
-                            )}
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            {/* Assignee */}
-                            <Select
-                              value={task.assignedToId}
-                              onValueChange={(v) => updateTaskAssignment(stage.id, task.taskId, 'assignedToId', v)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Assign to..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {users
-                                  .filter((u) => u.department === task.department)
-                                  .map((user) => (
-                                    <SelectItem key={user.id} value={user.id}>
-                                      {user.name}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-
-                            {/* Priority */}
-                            <Select
-                              value={task.priority}
-                              onValueChange={(v: any) => updateTaskAssignment(stage.id, task.taskId, 'priority', v)}
-                            >
-                              <SelectTrigger>
-                                <div className="flex items-center gap-2">
-                                  <Flag className={cn(
-                                    "w-3 h-3",
-                                    task.priority === 'High' ? "text-red-500 fill-red-500" :
-                                    task.priority === 'Medium' ? "text-yellow-500 fill-yellow-500" :
-                                    "text-blue-500 fill-blue-500"
-                                  )} />
-                                  <SelectValue placeholder="Priority" />
-                                </div>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="High">High</SelectItem>
-                                <SelectItem value="Medium">Medium</SelectItem>
-                                <SelectItem value="Low">Low</SelectItem>
-                              </SelectContent>
-                            </Select>
-
-                            {/* Due Date */}
-                            <div className="relative">
-                                <Input 
-                                    type="date" 
-                                    value={task.dueDate} 
-                                    onChange={(e) => updateTaskAssignment(stage.id, task.taskId, 'dueDate', e.target.value)}
-                                    className="w-full"
-                                />
-                            </div>
-                          </div>
-                        </div>
+                         <CollapsibleTaskRow 
+                            key={task.taskId} 
+                            task={task} 
+                            users={users} 
+                            onUpdate={(field, value) => updateTaskAssignment(stage.id, task.taskId, field, value)} 
+                         />
                       ))}
                     </div>
                   </div>
@@ -1016,7 +1111,7 @@ export default function StartProcess() {
                   <div className="bg-muted/50 rounded-lg p-4 mb-6">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <User className="w-6 h-6 text-primary" />
+                        <UserIcon className="w-6 h-6 text-primary" />
                       </div>
                       <div>
                         <p className="font-semibold text-foreground">{employeeName}</p>

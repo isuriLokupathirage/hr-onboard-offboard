@@ -87,9 +87,11 @@ export default function Dashboard() {
     <AppLayout title="" subtitle="">
       <div className="space-y-8">
         {/* Header Section */}
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Onboarding/Offboarding Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Overview of your employee transitions and active workflows</p>
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Onboarding/Offboarding Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-1">Overview of your employee transitions and active workflows</p>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -103,7 +105,7 @@ export default function Dashboard() {
               <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
                 <LayoutGrid className="w-4 h-4 text-success" />
               </div>
-              <h2 className="text-lg font-semibold text-foreground">Active Workflows</h2>
+              <h2 className="text-lg font-semibold text-foreground">Active Checklists</h2>
             </div>
             <Link 
               to="/workflows" 

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search, User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,18 +24,19 @@ import { ProgressBar } from '@/components/ui/progress-bar';
 import { mockWorkflows as initialWorkflows, clients } from '@/data/mockData';
 import { WorkflowType, WorkflowStatus, Workflow } from '@/types/workflow';
 import { getWorkflows } from '@/lib/storage';
-import { useEffect } from 'react';
 
 export default function Workflows() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     setWorkflows(getWorkflows());
   }, []);
-  const [typeFilter, setTypeFilter] = useState<WorkflowType | 'all'>('all');
-  const [statusFilter, setStatusFilter] = useState<WorkflowStatus | 'all'>('all');
+  
+  const [typeFilter, setTypeFilter] = useState<WorkflowType | 'all'>((searchParams.get('type') as WorkflowType) || 'all');
+  const [statusFilter, setStatusFilter] = useState<WorkflowStatus | 'all'>((searchParams.get('status') as WorkflowStatus) || 'all');
   const [clientFilter, setClientFilter] = useState<string>('all');
 
   const filteredWorkflows = workflows.filter((workflow) => {
@@ -49,8 +50,12 @@ export default function Workflows() {
     return matchesSearch && matchesType && matchesStatus && matchesClient;
   });
 
+  const pageTitle = typeFilter === 'all' 
+    ? 'Active Checklists' 
+    : `${typeFilter} Checklists`;
+
   return (
-    <AppLayout title="Active Workflows" subtitle="Manage all employee onboarding and offboarding">
+    <AppLayout title={pageTitle} subtitle="Manage all employee onboarding and offboarding">
       <div className="space-y-6">
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -103,7 +108,7 @@ export default function Workflows() {
 
             <Button onClick={() => navigate('/start/onboarding')} className="gap-2 bg-accent hover:bg-accent/90 text-accent-foreground">
               <Plus className="w-4 h-4" />
-              New Workflow
+              New Checklist
             </Button>
           </div>
         </div>
@@ -115,7 +120,7 @@ export default function Workflows() {
               <TableRow>
                 <TableHead>Employee</TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead>Workflow Type</TableHead>
+                <TableHead>Checklist Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Progress</TableHead>
                 <TableHead>Date</TableHead>
@@ -125,7 +130,7 @@ export default function Workflows() {
               {filteredWorkflows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                    No workflows found matching your filters
+                    No checklists found matching your filters
                   </TableCell>
                 </TableRow>
               ) : (

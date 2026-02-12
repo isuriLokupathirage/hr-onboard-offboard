@@ -138,6 +138,66 @@ export const workflowTemplates: WorkflowTemplate[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  {
+    id: 'template-3',
+    name: 'Enhanced Onboarding (Demo)',
+    type: 'Onboarding',
+    client: clients[1],
+    stages: [
+      {
+        id: 'ts-en-1',
+        name: 'Pre-boarding',
+        order: 1,
+        description: 'Critical tasks before Day 1',
+        tasks: [
+           { id: 'en-t1', name: 'Generate Offer Letter & Contract', department: 'HR', actionType: 'SEND_DOCUMENTS', attachments: ['Offer_Template_v2.docx', 'Contract_FullTime.pdf'] },
+           { id: 'en-t2', name: 'Background Check Initiation', department: 'HR', priority: 'High', dependentOn: ['en-t1'] },
+           { id: 'en-t3', name: 'Equipment Procurement', department: 'IT', priority: 'Medium', description: 'Order laptop and peripherals', attachments: ['Standard_Dev_Kit_Specs.pdf'] },
+        ]
+      },
+      {
+        id: 'ts-en-2',
+        name: 'Day 1 Orientation',
+        order: 2,
+        tasks: [
+            { id: 'en-t4', name: 'Welcome Bundle Handover', department: 'HR', dependentOn: ['en-t3'] },
+            { id: 'en-t5', name: 'System Access Setup', department: 'IT', actionType: 'CREATE_CREDENTIALS', dependentOn: ['en-t3'] },
+            { id: 'en-t6', name: 'Team Intro Meeting', department: 'HR', priority: 'High' }
+        ]
+      }
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'template-4',
+    name: 'Enhanced Offboarding (Demo)',
+    type: 'Offboarding',
+    client: clients[2],
+    stages: [
+       {
+           id: 'ts-off-1',
+           name: 'Immediate Actions',
+           order: 1,
+           tasks: [
+               { id: 'off-t1', name: 'Receive Resignation Letter', department: 'HR', actionType: 'COLLECT_DOCUMENTS' },
+               { id: 'off-t2', name: 'Notify IT & Admin', department: 'HR', actionType: 'EXTERNAL_COMMUNICATION', dependentOn: ['off-t1'] },
+               { id: 'off-t3', name: 'Revoke Critical Access', department: 'IT', priority: 'High', actionType: 'SYSTEM_UPDATE', dependentOn: ['off-t2'] }
+           ]
+       },
+       {
+           id: 'ts-off-2',
+           name: 'Asset Recovery',
+           order: 2,
+           tasks: [
+               { id: 'off-t4', name: 'Laptop Collection', department: 'IT', actionType: 'RETURN_ASSETS', attachments: ['Asset_Return_Form.pdf'], dependentOn: ['off-t2'] },
+               { id: 'off-t5', name: 'ID Card Return', department: 'HR', actionType: 'RETURN_ASSETS' }
+           ]
+       }
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
 ];
 
 export const mockEmployeeAccounts: EmployeeAccount[] = [

@@ -159,7 +159,7 @@ export default function EmployeeDetail() {
             <TabsTrigger value="personal">Personal</TabsTrigger>
             <TabsTrigger value="employment">Employment</TabsTrigger>
             <TabsTrigger value="financial">Financial & Legal</TabsTrigger>
-            {employee.status === 'Inactive' && (
+            {(employee.status === 'Inactive' || employee.offboardingType) && (
               <TabsTrigger value="offboarding">Offboarding</TabsTrigger>
             )}
             <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -398,10 +398,7 @@ export default function EmployeeDetail() {
                             <p className="text-sm font-medium mb-1">Exit Reason</p>
                             <p className="text-sm text-muted-foreground">{employee.exitReason || '-'}</p>
                         </div>
-                         <div>
-                            <p className="text-sm font-medium mb-1">Offboarded Date</p>
-                            <p className="text-sm text-muted-foreground">{employee.offboardedAt ? new Date(employee.offboardedAt).toLocaleDateString() : '-'}</p>
-                        </div>
+
                     </div>
                     
                     <div className="border-t pt-4">
