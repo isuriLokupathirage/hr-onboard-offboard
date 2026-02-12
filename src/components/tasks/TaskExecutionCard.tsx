@@ -13,7 +13,8 @@ import {
   AlertCircle,
   Send,
   Lock,
-  Flag
+  Flag,
+  Paperclip
 } from 'lucide-react';
 import { Task, Stage, Workflow, TaskStatus, Priority } from '@/types/workflow';
 import { Button } from '@/components/ui/button';
@@ -167,6 +168,12 @@ export function TaskExecutionCard({ task, workflow, stage, isAvailable = true, o
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="w-3 h-3" />
                     Due: {new Date(task.dueDate).toLocaleDateString()}
+                  </span>
+                )}
+                {task.attachments && task.attachments.length > 0 && (
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                    <Paperclip className="w-3 h-3" />
+                    {task.attachments.length}
                   </span>
                 )}
               </div>

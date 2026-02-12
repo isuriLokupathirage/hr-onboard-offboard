@@ -1,4 +1,4 @@
-import { Client, User, Workflow, Notification, WorkflowTemplate, Stage, EmployeeAccount } from '@/types/workflow';
+import { Client, User, Workflow, Notification, WorkflowTemplate, Stage, EmployeeAccount, LibraryTask, Department } from '@/types/workflow';
 
 export const clients: Client[] = [
   { id: '1', name: 'Dialog Axiata' },
@@ -41,10 +41,10 @@ export const workflowTemplates: WorkflowTemplate[] = [
         order: 1,
         description: 'Initial HR activities upon offer acceptance',
         tasks: [
-          { id: 'tt1', name: 'Send the Job Offer Email along with the checklist, NDA & Offer Letter', description: 'Ensure all attachments are PDF', department: 'HR', actionType: 'SEND_DOCUMENTS' },
+          { id: 'tt1', name: 'Send the Job Offer Email along with the checklist, NDA & Offer Letter', description: 'Ensure all attachments are PDF', department: 'HR', actionType: 'SEND_DOCUMENTS', attachments: ['Offer_Letter_Template.pdf', 'NDA_Agreement.pdf', 'Employee_Handbook.pdf'] },
           { id: 'tt2', name: 'Update the client on the acceptance of the offer with DOJ', department: 'HR', actionType: 'EXTERNAL_COMMUNICATION' },
           { id: 'tt3', name: 'Collect the Signed NDA and Offer Letter & share them with the Leadership', department: 'HR', actionType: 'COLLECT_DOCUMENTS' },
-          { id: 'tt4', name: 'Gather Completed Employee Data Gathering Form', department: 'HR', actionType: 'COLLECT_DOCUMENTS' },
+          { id: 'tt4', name: 'Gather Completed Employee Data Gathering Form', department: 'HR', actionType: 'COLLECT_DOCUMENTS', attachments: ['Data_Gathering_Form.xlsx'] },
           { id: 'tt5', name: 'Update the Employee DB', department: 'HR', actionType: 'SYSTEM_UPDATE' },
         ],
       },
@@ -280,6 +280,7 @@ export const mockWorkflows: Workflow[] = [
     type: 'Onboarding',
     client: clients[0],
     employee: {
+      id: 'acc-1',
       name: 'Kasun Gunawardena',
       email: 'kasun.g@dialog.lk',
       position: 'Senior Developer',
@@ -296,10 +297,10 @@ export const mockWorkflows: Workflow[] = [
         order: 1,
         description: 'Initial HR activities upon offer acceptance',
         tasks: [
-          { id: 't1', name: 'Send the Job Offer Email along with the checklist, NDA & Offer Letter', description: 'Ensure all attachments are PDF', assignedTo: users[0], department: 'HR', status: 'Done', priority: 'High', dueDate: '2024-02-10', actionType: 'SEND_DOCUMENTS' },
+          { id: 't1', name: 'Send the Job Offer Email along with the checklist, NDA & Offer Letter', description: 'Ensure all attachments are PDF', assignedTo: users[0], department: 'HR', status: 'Done', priority: 'High', dueDate: '2024-02-10', actionType: 'SEND_DOCUMENTS', attachments: ['Offer_Letter.pdf', 'NDA.pdf', 'Employee_Handbook.pdf'] },
           { id: 't2', name: 'Update the client on the acceptance of the offer with DOJ', description: 'Email sent to hiring manager', assignedTo: users[0], department: 'HR', status: 'Done', priority: 'Medium', dueDate: '2024-02-12', actionType: 'EXTERNAL_COMMUNICATION' },
           { id: 't3', name: 'Collect the Signed NDA and Offer Letter & share them with the Leadership', assignedTo: users[0], department: 'HR', status: 'Done', priority: 'Medium', dueDate: '2024-02-15', actionType: 'COLLECT_DOCUMENTS' },
-          { id: 't4', name: 'Gather Completed Employee Data Gathering Form', assignedTo: users[3], department: 'HR', status: 'Done', priority: 'Low', dueDate: '2024-02-20', actionType: 'COLLECT_DOCUMENTS' },
+          { id: 't4', name: 'Gather Completed Employee Data Gathering Form', assignedTo: users[3], department: 'HR', status: 'Done', priority: 'Low', dueDate: '2024-02-20', actionType: 'COLLECT_DOCUMENTS', attachments: ['Data_Gathering_Form_Template.docx'] },
           { id: 't5', name: 'Update the Employee DB', assignedTo: users[3], department: 'HR', status: 'Done', priority: 'Low', dueDate: '2024-02-20', actionType: 'SYSTEM_UPDATE' },
         ],
       },
@@ -354,6 +355,7 @@ export const mockWorkflows: Workflow[] = [
     type: 'Onboarding',
     client: clients[1],
     employee: {
+      id: 'acc-2',
       name: 'Nimali Rathnayake',
       title: 'Ms',
       email: 'nimali.r@pickme.lk',
@@ -408,6 +410,7 @@ export const mockWorkflows: Workflow[] = [
     type: 'Offboarding',
     client: clients[2],
     employee: {
+      id: 'acc-3',
       name: 'Ruwan Dissanayake',
       title: 'Mr',
       email: 'ruwan.d@masholdings.com',
@@ -486,4 +489,120 @@ export const mockNotifications: Notification[] = [
     read: false,
     createdAt: new Date().toISOString(),
   },
+];
+
+export const mockLibraryTasks: LibraryTask[] = [
+  // Onboarding Tasks
+  {
+    id: 'lt-1',
+    name: 'Send Welcome Email',
+    department: 'HR',
+    dueDateConfig: { type: 'on-hire' },
+    notificationConfig: 'Soon After Task Is Assigned',
+    description: 'Send a warm welcome email to the new employee with orientation details.',
+    attachments: ['Welcome_Kit.pdf', 'Orientation_Guide.docx'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'lt-2',
+    name: 'IT Equipment Setup',
+    department: 'IT',
+    dueDateConfig: { type: 'relative', days: 2, unit: 'days', direction: 'before' },
+    notificationConfig: 'Soon After Task Is Assigned',
+    description: 'Prepare and test the laptop, monitor, and peripherals for the new hire.',
+    attachments: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'lt-3',
+    name: 'HR Induction Session',
+    department: 'HR',
+    dueDateConfig: { type: 'relative', days: 1, unit: 'days', direction: 'after' },
+    notificationConfig: 'Soon After Task Is Assigned',
+    description: 'Conduct a walkthrough of company policies, benefits, and culture.',
+    attachments: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'lt-4',
+    name: 'Office Tour',
+    department: 'HR',
+    dueDateConfig: { type: 'on-hire' },
+    notificationConfig: 'Soon After Task Is Assigned',
+    description: 'Show the new employee around the office and introduce them to key teams.',
+    attachments: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  
+  // Offboarding Tasks
+  {
+    id: 'lt-5',
+    name: 'IT Asset Recovery',
+    department: 'IT',
+    dueDateConfig: { type: 'on-hire' }, // Used here to represent last day
+    notificationConfig: 'Soon After Task Is Assigned',
+    description: 'Collect laptop, chargers, and any other company-issued hardware.',
+    attachments: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'lt-6',
+    name: 'Email & Account Deactivation',
+    department: 'IT',
+    dueDateConfig: { type: 'relative', days: 1, unit: 'days', direction: 'after' },
+    notificationConfig: 'Soon After Task Is Assigned',
+    description: 'Deactivate email, Slack, and other system accesses.',
+    attachments: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'lt-7',
+    name: 'Conduct Exit Interview',
+    department: 'HR',
+    dueDateConfig: { type: 'relative', days: 2, unit: 'days', direction: 'before' },
+    notificationConfig: 'Soon After Task Is Assigned',
+    description: 'Gather feedback about the employee experience and reasons for leaving.',
+    attachments: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'lt-8',
+    name: 'Final Settlement Clearance',
+    department: 'Finance',
+    dueDateConfig: { type: 'relative', days: 5, unit: 'days', direction: 'after' },
+    notificationConfig: 'Soon After Task Is Assigned',
+    description: 'Process final pay, leave encashment, and any pending expense claims.',
+    attachments: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'lt-9',
+    name: 'Insurance Termination',
+    department: 'HR',
+    dueDateConfig: { type: 'relative', days: 3, unit: 'days', direction: 'after' },
+    notificationConfig: 'Soon After Task Is Assigned',
+    description: 'Notify the insurance provider about the employee termination.',
+    attachments: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'lt-10',
+    name: 'Legal NDA Verification',
+    department: 'Legal',
+    dueDateConfig: { type: 'on-hire' },
+    notificationConfig: 'Soon After Task Is Assigned',
+    description: 'Ensure all post-employment obligations are clearly communicated and signed.',
+    attachments: ['NDA_Agreement.pdf', 'Post_Employment_Obligations.pdf'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
 ];

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { MessageSquare, Plus } from 'lucide-react';
-import { Comment, CommentAuthor } from '@/types/workflow';
+import { WorkflowComment, CommentAuthor } from '@/types/workflow';
 import { Button } from '@/components/ui/button';
 import { CommentItem } from './CommentItem';
 import { CommentForm } from './CommentForm';
 
 interface CommentThreadProps {
-  comments: Comment[];
+  comments: WorkflowComment[];
   onAddComment: (text: string) => void;
   onAddReply: (commentId: string, text: string) => void;
   currentUser: CommentAuthor;

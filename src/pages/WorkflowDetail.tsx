@@ -6,6 +6,14 @@ import { StageColumn } from '@/components/workflow/StageColumn';
 import { StatusBadge, WorkflowTypeBadge } from '@/components/ui/status-badge';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Workflow } from '@/types/workflow';
 import { getWorkflowById, updateWorkflow, completeWorkflow } from '@/lib/storage';
 import { toast } from '@/hooks/use-toast';
@@ -32,7 +40,9 @@ export default function WorkflowDetail() {
   const [workflow, setWorkflow] = useState<Workflow | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
+  const [cancelReasonType, setCancelReasonType] = useState('');
+  const [customCancelReason, setCustomCancelReason] = useState('');
+  const [cancelDate, setCancelDate] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -62,19 +72,25 @@ export default function WorkflowDetail() {
   };
 
   const handleCancelWorkflow = () => {
-    if (!workflow || !cancelReason.trim()) return;
+    if (!workflow || !cancelReasonType || !cancelDate) return;
+    if (cancelReasonType === 'Other' && !customCancelReason.trim()) return;
+
+    const finalReason = cancelReasonType === 'Other' ? customCancelReason : cancelReasonType;
 
     const updatedWorkflow: Workflow = {
       ...workflow,
       status: 'Cancelled',
-      cancellationReason: cancelReason,
+      cancellationReason: finalReason,
+      cancelledAt: new Date(cancelDate).toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     updateWorkflow(updatedWorkflow);
     setWorkflow(updatedWorkflow);
     setCancelDialogOpen(false);
-    setCancelReason('');
+    setCancelReasonType('');
+    setCustomCancelReason('');
+    setCancelDate('');
 
     toast({
       title: "Workflow Cancelled",
@@ -187,7 +203,10 @@ export default function WorkflowDetail() {
                 <div className="flex gap-2">
                   <Button 
                     variant="destructive"
-                    onClick={() => setCancelDialogOpen(true)}
+                    onClick={() => {
+                      setCancelDialogOpen(true);
+                      setCancelDate(new Date().toISOString().split('T')[0]); // Default to today
+                    }}
                   >
                     Cancel Workflow
                   </Button>
@@ -271,22 +290,70 @@ export default function WorkflowDetail() {
               Please provide a reason for the cancellation.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="cancel-reason" className="mb-2 block">Reason for Cancellation</Label>
-            <Textarea
-              id="cancel-reason"
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="Enter reason..."
-              className="resize-none"
-            />
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="cancel-date" className="mb-2 block">Date Cancelled</Label>
+              <Input
+                id="cancel-date"
+                type="date"
+                value={cancelDate}
+                onChange={(e) => setCancelDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            <div>
+              <Label htmlFor="cancel-reason-type" className="mb-2 block">Reason for Cancellation</Label>
+              <Select value={cancelReasonType} onValueChange={setCancelReasonType}>
+                <SelectTrigger id="cancel-reason-type">
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workflow?.type === 'Onboarding' ? (
+                    <>
+                      <SelectItem value="Candidate Withdrew">Candidate Withdrew</SelectItem>
+                      <SelectItem value="Failed Background Check">Failed Background Check</SelectItem>
+                      <SelectItem value="Failed Interview">Failed Interview</SelectItem>
+                      <SelectItem value="Position Cancelled">Position Cancelled</SelectItem>
+                      <SelectItem value="Budget Constraints">Budget Constraints</SelectItem>
+                      <SelectItem value="Organizational Restructuring">Organizational Restructuring</SelectItem>
+                      <SelectItem value="Duplicate Entry">Duplicate Entry</SelectItem>
+                      <SelectItem value="Data Entry Error">Data Entry Error</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="Employee Staying">Employee Staying</SelectItem>
+                      <SelectItem value="Counter Offer Accepted">Counter Offer Accepted</SelectItem>
+                      <SelectItem value="Resignation Withdrawn">Resignation Withdrawn</SelectItem>
+                      <SelectItem value="Process Reinitiated">Process Reinitiated</SelectItem>
+                      <SelectItem value="Manager Request">Manager Request</SelectItem>
+                      <SelectItem value="Duplicate Entry">Duplicate Entry</SelectItem>
+                      <SelectItem value="Data Entry Error">Data Entry Error</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            {cancelReasonType === 'Other' && (
+              <div>
+                <Label htmlFor="custom-cancel-reason" className="mb-2 block">Custom Reason</Label>
+                <Textarea
+                  id="custom-cancel-reason"
+                  value={customCancelReason}
+                  onChange={(e) => setCustomCancelReason(e.target.value)}
+                  placeholder="Enter custom reason..."
+                  className="resize-none"
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>Keep Workflow</Button>
             <Button 
               variant="destructive" 
               onClick={handleCancelWorkflow}
-              disabled={!cancelReason.trim()}
+              disabled={!cancelReasonType || !cancelDate || (cancelReasonType === 'Other' && !customCancelReason.trim())}
             >
               Cancel Workflow
             </Button>

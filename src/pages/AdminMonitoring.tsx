@@ -16,7 +16,9 @@ import {
   Lock,
   Flag,
   Calendar,
-  Edit2
+  Edit2,
+  EllipsisVertical,
+  Eye
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -54,8 +56,12 @@ import { TaskCommentModal } from '@/components/tasks/TaskCommentModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PriorityBadge } from '@/components/tasks/PriorityBadge';
 import { EmployeeDetailModal } from '@/components/employee/EmployeeDetailModal';
-import { Info } from 'lucide-react';
-// ... existing imports
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 
 
@@ -83,7 +89,9 @@ export default function AdminMonitoring() {
   
   // Cancellation state
   const [workflowToCancel, setWorkflowToCancel] = useState<Workflow | null>(null);
-  const [cancelReason, setCancelReason] = useState('');
+  const [cancelReasonType, setCancelReasonType] = useState('');
+  const [customCancelReason, setCustomCancelReason] = useState('');
+  const [cancelDate, setCancelDate] = useState('');
   
   // Delete confirm state
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
@@ -217,16 +225,21 @@ export default function AdminMonitoring() {
   const handleInitiateCancel = (e: React.MouseEvent, workflow: Workflow) => {
     e.stopPropagation();
     setWorkflowToCancel(workflow);
-    setCancelReason('');
+    setCancelReasonType('');
+    setCustomCancelReason('');
+    setCancelDate(new Date().toISOString().split('T')[0]); // Default to today
   };
 
   const handleConfirmCancel = () => {
-    if (!workflowToCancel || !cancelReason.trim()) return;
+    if (!workflowToCancel || !cancelReasonType || !cancelDate) return;
+    if (cancelReasonType === 'Other' && !customCancelReason.trim()) return;
+
+    const finalReason = cancelReasonType === 'Other' ? customCancelReason : cancelReasonType;
 
     const updatedWorkflow: Workflow = {
       ...workflowToCancel,
       status: 'Cancelled',
-      cancellationReason: cancelReason,
+      cancellationReason: finalReason,
       cancelledBy: {
         id: currentUser.id,
         name: currentUser.name,
@@ -235,14 +248,16 @@ export default function AdminMonitoring() {
         avatar: currentUser.avatar,
         isAdmin: currentUser.isAdmin
       },
-      cancelledAt: new Date().toISOString(),
+      cancelledAt: new Date(cancelDate).toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     updateWorkflow(updatedWorkflow);
     loadWorkflows();
     setWorkflowToCancel(null);
-    setCancelReason('');
+    setCancelReasonType('');
+    setCustomCancelReason('');
+    setCancelDate('');
 
     toast({
       title: 'Workflow Cancelled',
@@ -400,22 +415,70 @@ export default function AdminMonitoring() {
               This action cannot be undone. Please provide a reason.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="cancel-reason" className="mb-2 block">Reason for Cancellation</Label>
-            <Textarea
-              id="cancel-reason"
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="Enter reason..."
-              className="resize-none"
-            />
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="cancel-date" className="mb-2 block">Date Cancelled</Label>
+              <Input
+                id="cancel-date"
+                type="date"
+                value={cancelDate}
+                onChange={(e) => setCancelDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            <div>
+              <Label htmlFor="cancel-reason-type" className="mb-2 block">Reason for Cancellation</Label>
+              <Select value={cancelReasonType} onValueChange={setCancelReasonType}>
+                <SelectTrigger id="cancel-reason-type">
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workflowToCancel?.type === 'Onboarding' ? (
+                    <>
+                      <SelectItem value="Candidate Withdrew">Candidate Withdrew</SelectItem>
+                      <SelectItem value="Failed Background Check">Failed Background Check</SelectItem>
+                      <SelectItem value="Failed Interview">Failed Interview</SelectItem>
+                      <SelectItem value="Position Cancelled">Position Cancelled</SelectItem>
+                      <SelectItem value="Budget Constraints">Budget Constraints</SelectItem>
+                      <SelectItem value="Organizational Restructuring">Organizational Restructuring</SelectItem>
+                      <SelectItem value="Duplicate Entry">Duplicate Entry</SelectItem>
+                      <SelectItem value="Data Entry Error">Data Entry Error</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="Employee Staying">Employee Staying</SelectItem>
+                      <SelectItem value="Counter Offer Accepted">Counter Offer Accepted</SelectItem>
+                      <SelectItem value="Resignation Withdrawn">Resignation Withdrawn</SelectItem>
+                      <SelectItem value="Process Reinitiated">Process Reinitiated</SelectItem>
+                      <SelectItem value="Manager Request">Manager Request</SelectItem>
+                      <SelectItem value="Duplicate Entry">Duplicate Entry</SelectItem>
+                      <SelectItem value="Data Entry Error">Data Entry Error</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            {cancelReasonType === 'Other' && (
+              <div>
+                <Label htmlFor="custom-cancel-reason" className="mb-2 block">Custom Reason</Label>
+                <Textarea
+                  id="custom-cancel-reason"
+                  value={customCancelReason}
+                  onChange={(e) => setCustomCancelReason(e.target.value)}
+                  placeholder="Enter custom reason..."
+                  className="resize-none"
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setWorkflowToCancel(null)}>Keep Workflow</Button>
             <Button 
               variant="destructive" 
               onClick={handleConfirmCancel}
-              disabled={!cancelReason.trim()}
+              disabled={!cancelReasonType || !cancelDate || (cancelReasonType === 'Other' && !customCancelReason.trim())}
             >
               Cancel Workflow
             </Button>
@@ -607,58 +670,54 @@ function WorkflowMonitorCard({ workflow, isExpanded, onToggle, onEdit, onDelete,
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-1 border-l border-border pl-4">
-              {onViewEmployee && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                  title="View Employee Details"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onViewEmployee();
-                  }}
-                >
-                  <Info className="w-4 h-4" />
-                </Button>
-              )}
-              {workflow.status === 'In Progress' && onEdit && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                  title="Edit Workflow"
-                  onClick={onEdit}
-                >
-                  <Edit2 className="w-4 h-4" />
-                </Button>
-              )}
-              {workflow.status === 'In Progress' && onCancel && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                  title="Cancel Workflow"
-                  onClick={onCancel}
-                >
-                  <AlertTriangle className="w-4 h-4" />
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-8 w-8",
-                  workflow.status === 'In Progress' 
-                    ? "opacity-50 cursor-not-allowed text-muted-foreground" 
-                    : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                )}
-                onClick={workflow.status === 'In Progress' ? undefined : onDelete}
-                disabled={workflow.status === 'In Progress'}
-                title={workflow.status === 'In Progress' ? "Cannot delete in-progress workflow" : "Delete Workflow"}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+            <div className="flex items-center gap-1 border-l border-border pl-4" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                    <EllipsisVertical className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 rounded-xl">
+                  {onViewEmployee && (
+                    <DropdownMenuItem 
+                      onClick={onViewEmployee}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View Employee Details
+                    </DropdownMenuItem>
+                  )}
+                  {workflow.status === 'In Progress' && onEdit && (
+                    <DropdownMenuItem 
+                      onClick={onEdit}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Edit Workflow
+                    </DropdownMenuItem>
+                  )}
+                  {workflow.status === 'In Progress' && onCancel && (
+                    <DropdownMenuItem 
+                      onClick={onCancel}
+                      className="gap-2 text-warning focus:text-warning cursor-pointer"
+                    >
+                      <AlertTriangle className="w-4 h-4" />
+                      Cancel Workflow
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem 
+                    onClick={onDelete}
+                    disabled={workflow.status === 'In Progress'}
+                    className={cn(
+                      "gap-2 cursor-pointer",
+                      workflow.status !== 'In Progress' && "text-destructive focus:text-destructive"
+                    )}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Workflow
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

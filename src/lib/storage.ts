@@ -2,7 +2,8 @@ import {
   workflowTemplates as initialTemplates, 
   mockWorkflows as initialWorkflows,
   mockNotifications as initialNotifications,
-  mockEmployeeAccounts
+  mockEmployeeAccounts,
+  mockLibraryTasks
 } from '@/data/mockData';
 import { 
   WorkflowTemplate, 
@@ -12,15 +13,70 @@ import {
   AccountStatus,
   TemplateStage,
   TemplateTask,
-  Comment,
+  WorkflowComment,
   CommentAuthor,
-  TaskStatus 
+  TaskStatus,
+  LibraryTask 
 } from '@/types/workflow';
 
-const TEMPLATES_KEY = 'hr_workflow_templates_v8';
-const WORKFLOWS_KEY = 'hr_active_workflows_v8';
-const NOTIFICATIONS_KEY = 'hr_notifications_v8';
-const ACCOUNTS_KEY = 'hr_employee_accounts_v8';
+// ... (skipping constants)
+
+// Task Library
+export const getLibraryTasks = (): LibraryTask[] => {
+  const stored = localStorage.getItem(LIBRARY_TASKS_KEY);
+  if (!stored) {
+    saveLibraryTasks(mockLibraryTasks);
+    return mockLibraryTasks;
+  }
+  try {
+    return JSON.parse(stored);
+  } catch (error) {
+    console.error('Error parsing library tasks:', error);
+    return [];
+  }
+};
+
+export const saveLibraryTasks = (tasks: LibraryTask[]) => {
+  localStorage.setItem(LIBRARY_TASKS_KEY, JSON.stringify(tasks));
+};
+
+export const createLibraryTask = (taskData: Omit<LibraryTask, 'id' | 'createdAt' | 'updatedAt'>): LibraryTask => {
+  const tasks = getLibraryTasks();
+  const now = new Date().toISOString();
+  const newTask: LibraryTask = {
+    ...taskData,
+    id: `lib-task-${Date.now()}`,
+    createdAt: now,
+    updatedAt: now,
+  };
+  tasks.push(newTask);
+  saveLibraryTasks(tasks);
+  return newTask;
+};
+
+export const updateLibraryTask = (taskData: LibraryTask): LibraryTask => {
+  const tasks = getLibraryTasks();
+  const index = tasks.findIndex((t) => t.id === taskData.id);
+  const now = new Date().toISOString();
+  if (index !== -1) {
+    const updated = { ...taskData, updatedAt: now };
+    tasks[index] = updated;
+    saveLibraryTasks(tasks);
+    return updated;
+  }
+  return createLibraryTask(taskData);
+};
+
+export const deleteLibraryTask = (id: string) => {
+  const tasks = getLibraryTasks().filter((t) => t.id !== id);
+  saveLibraryTasks(tasks);
+};
+
+const TEMPLATES_KEY = 'hr_workflow_templates_v10';
+const WORKFLOWS_KEY = 'hr_active_workflows_v10';
+const NOTIFICATIONS_KEY = 'hr_notifications_v10';
+const ACCOUNTS_KEY = 'hr_employee_accounts_v10';
+const LIBRARY_TASKS_KEY = 'hr_library_tasks_v10';
 
 // Custom event for workflow updates
 const WORKFLOWS_UPDATED_EVENT = 'workflowsUpdated';
@@ -257,7 +313,7 @@ export const getNextTask = (workflow: Workflow, currentTaskId: string) => {
 };
 
 // Comment Management
-const findCommentById = (comments: Comment[], commentId: string): Comment | null => {
+const findCommentById = (comments: WorkflowComment[], commentId: string): WorkflowComment | null => {
   for (const comment of comments) {
     if (comment.id === commentId) return comment;
     const found = findCommentById(comment.replies, commentId);
@@ -282,7 +338,7 @@ export const addCommentToTask = (
   
   if (!task) return;
 
-  const newComment: Comment = {
+  const newComment: WorkflowComment = {
     id: crypto.randomUUID(),
     text,
     author,
@@ -318,7 +374,7 @@ export const addReplyToComment = (
   const parentComment = findCommentById(task.comments, commentId);
   if (!parentComment) return;
 
-  const newReply: Comment = {
+  const newReply: WorkflowComment = {
     id: crypto.randomUUID(),
     text,
     author,
@@ -351,6 +407,7 @@ export const ensureTemplateCompatibility = (template: Partial<WorkflowTemplate>)
       comments: task.comments || [],
       dependentOn: task.dependentOn || [],
       indent: task.indent || 0,
+      attachments: task.attachments || [],
     }))
   }));
   
@@ -391,6 +448,7 @@ export const createTemplateFromFormData = (formData: {
       comments: [],
       dependentOn: task.dependentOn || [],
       indent: task.indent || 0,
+      attachments: task.attachments || [],
     }))
   }));
   
@@ -434,6 +492,8 @@ export const completeWorkflow = (workflow: Workflow): void => {
         offboardedAt: new Date().toISOString(),
         offboardingType: workflow.offboardingDetails?.type,
         exitReason: workflow.offboardingDetails?.exitReason,
+        resignationLetterDate: workflow.offboardingDetails?.resignationLetterDate,
+        resignationEffectiveDate: workflow.offboardingDetails?.resignationEffectiveDate,
         lastWorkingDay: workflow.offboardingDetails?.lastWorkingDay,
         offboardingDocuments: allDocuments,
       };

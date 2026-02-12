@@ -18,7 +18,9 @@ import {
     User,
     UserPlus,
     UserMinus,
-    Lock
+    Lock,
+    FileText,
+    Upload
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -147,6 +149,42 @@ export function TaskDetailModal({
                             {task.description}
                          </p>
                      </div>
+                 )}
+
+                 {task.attachments && task.attachments.length > 0 && (
+                    <div>
+                        <h4 className="font-semibold text-sm mb-2 text-foreground">Attachments</h4>
+                        <div className="flex flex-col gap-2">
+                             {task.attachments.map((file, i) => (
+                                <div key={i} className="flex items-center justify-between bg-card border border-border rounded-md px-3 py-2.5 text-sm hover:bg-accent/5 transition-colors group">
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                        <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                            <FileText className="w-4 h-4" />
+                                        </div>
+                                        <span className="text-foreground font-medium truncate" title={file}>{file}</span>
+                                    </div>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-8 w-8 p-0 text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => {
+                                            const blob = new Blob(["Mock file content"], { type: "text/plain" });
+                                            const url = URL.createObjectURL(blob);
+                                            const a = document.createElement("a");
+                                            a.href = url;
+                                            a.download = file;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            URL.revokeObjectURL(url);
+                                        }}
+                                    >
+                                        <Upload className="w-4 h-4 rotate-180" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                  )}
 
                  <div className="space-y-4">

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Shield, User as UserIcon } from 'lucide-react';
-import { Comment } from '@/types/workflow';
+import { WorkflowComment } from '@/types/workflow';
 import { Button } from '@/components/ui/button';
 
 import { cn } from '@/lib/utils';
 
 interface CommentItemProps {
-  comment: Comment;
+  comment: WorkflowComment;
   onReply: (commentId: string, text: string) => void;
   currentUserIsAdmin: boolean;
   depth?: number;

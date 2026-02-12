@@ -33,6 +33,7 @@ interface TaskAssignment {
   dependentOn?: string[];
   indent?: number;
   description?: string;
+  attachments?: string[];
 }
 
 interface StageWithAssignments {
@@ -60,6 +61,7 @@ export default function StartProcess() {
   const [employeeEmail, setEmployeeEmail] = useState('');
 
   const [employeeDate, setEmployeeDate] = useState('');
+  const [employeeJoinDate, setEmployeeJoinDate] = useState('');
   const [employeeGender, setEmployeeGender] = useState('');
   const [employeeCountryCode, setEmployeeCountryCode] = useState('+94');
   const [employeePhone, setEmployeePhone] = useState('');
@@ -71,6 +73,8 @@ export default function StartProcess() {
   // Offboarding State
   const [offboardingType, setOffboardingType] = useState<OffboardingType>('Voluntary');
   const [exitReason, setExitReason] = useState<ExitReason | ''>('');
+  const [resignationLetterDate, setResignationLetterDate] = useState('');
+  const [resignationEffectiveDate, setResignationEffectiveDate] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [otherReason, setOtherReason] = useState('');
 
@@ -95,7 +99,8 @@ export default function StartProcess() {
           setEmployeeEmail(startWorkflow.employee.email || '');
           setEmployeePosition(startWorkflow.employee.position);
           setEmployeePosition(startWorkflow.employee.position);
-          setEmployeeDate(startWorkflow.employee.startDate || '');
+          setEmployeeDate(startWorkflow.employee.dateOfBirth || '');
+          setEmployeeJoinDate(startWorkflow.employee.startDate || '');
           setEmployeeGender(startWorkflow.employee.gender || '');
           setEmployeeCountryCode(startWorkflow.employee.countryCode || '+94');
           setEmployeePhone(startWorkflow.employee.phone || '');
@@ -110,6 +115,8 @@ export default function StartProcess() {
             if (startWorkflow.offboardingDetails) {
                  setOffboardingType(startWorkflow.offboardingDetails.type);
                  setExitReason(startWorkflow.offboardingDetails.exitReason);
+                 setResignationLetterDate(startWorkflow.offboardingDetails.resignationLetterDate || '');
+                 setResignationEffectiveDate(startWorkflow.offboardingDetails.resignationEffectiveDate || '');
             }
         }
 
@@ -128,7 +135,8 @@ export default function StartProcess() {
                 dueDate: t.dueDate || '',
                 dependentOn: t.dependentOn,
                 indent: t.indent,
-                description: t.description
+                description: t.description,
+                attachments: t.attachments || [] // Load existing attachments if editing
             }))
         }));
         setStages(loadedStages);
@@ -175,6 +183,7 @@ export default function StartProcess() {
               dueDate: '',
               dependentOn: t.dependentOn || [],
               indent: t.indent || 0,
+              attachments: t.attachments || [], // Load attachments from template
             })),
           }))
         );
@@ -239,7 +248,7 @@ export default function StartProcess() {
   // Validation
   // Allow proceeding if editing (editWorkflowId present) regardless of selectedTemplateId
   const canProceedStep1 = workflowType === 'Onboarding'
-    ? clientId && employeeId && employeeDate && (selectedTemplateId || editWorkflowId) && employeePosition
+    ? clientId && employeeId && employeeDate && employeeJoinDate && (selectedTemplateId || editWorkflowId) && employeePosition
     : employeeId && employeeDate && (selectedTemplateId || editWorkflowId) && exitReason && (uploadedFiles.length > 0 || editWorkflowId); // Relax file upload for edit
 
   const canProceedStep2 = stages.length > 0;
@@ -295,6 +304,7 @@ export default function StartProcess() {
       client: selectedClient!,
       employee: workflowType === 'Onboarding'
         ? {
+            id: existingWorkflow?.employee.id || crypto.randomUUID(),
             name: employeeName,
             title: employeeTitle,
             email: currentEmail,
@@ -303,8 +313,9 @@ export default function StartProcess() {
 
             employmentType: currentEmploymentType as EmploymentType,
             supervisorId: undefined,
-            startDate: undefined,
+            startDate: employeeJoinDate,
             endDate: undefined,
+            dateOfBirth: employeeDate,
 
             gender: employeeGender,
             phone: employeePhone,
@@ -314,6 +325,7 @@ export default function StartProcess() {
             ...(existingWorkflow?.employee || {})
           }
         : {
+            id: selectedEmployee?.id || existingWorkflow?.employee.id || crypto.randomUUID(),
             name: employeeName,
             email: currentEmail,
             position: currentPosition,
@@ -330,6 +342,8 @@ export default function StartProcess() {
       offboardingDetails: workflowType === 'Offboarding' ? {
         type: offboardingType,
         exitReason: exitReason as ExitReason,
+        resignationLetterDate: resignationLetterDate || undefined,
+        resignationEffectiveDate: resignationEffectiveDate || undefined,
         lastWorkingDay: employeeDate,
         // Merge existing documents with new ones if needed, currently we just overwrite names from uploadedFiles
         // If editing, we might lose previous file names if we don't handle them.
@@ -376,6 +390,7 @@ export default function StartProcess() {
                 comments: existingTask?.comments || [], 
                 dependentOn: t.dependentOn,
                 indent: t.indent || 0,
+                attachments: t.attachments || [], // Pass to final task
               };
             })
           };
@@ -504,6 +519,14 @@ export default function StartProcess() {
                       type="date"
                       value={employeeDate}
                       onChange={(e) => setEmployeeDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Date of Join *</Label>
+                    <Input
+                      type="date"
+                      value={employeeJoinDate}
+                      onChange={(e) => setEmployeeJoinDate(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -740,6 +763,24 @@ export default function StartProcess() {
                                     className="mt-2"
                                 />
                             )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Resignation Letter Date</Label>
+                            <Input
+                              type="date"
+                              value={resignationLetterDate}
+                              onChange={(e) => setResignationLetterDate(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Resignation Effective Date</Label>
+                            <Input
+                              type="date"
+                              value={resignationEffectiveDate}
+                              onChange={(e) => setResignationEffectiveDate(e.target.value)}
+                            />
                         </div>
 
                         <div className="space-y-2">

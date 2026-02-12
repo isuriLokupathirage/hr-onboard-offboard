@@ -52,7 +52,8 @@ export function Sidebar() {
       title: 'Organization',
       items: [
         { icon: Eye, label: 'Task Monitoring', path: '/admin/monitoring' },
-        { icon: FileText, label: 'Check List Templates', path: '/templates' },
+        { icon: FileText, label: 'Onboarding Templates', path: '/templates/onboarding' },
+        { icon: FileText, label: 'Offboarding Templates', path: '/templates/offboarding' },
       ]
     },
     {

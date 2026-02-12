@@ -7,7 +7,7 @@ import { Task, Workflow, CommentAuthor } from "@/types/workflow";
 import { format } from "date-fns";
 import { CommentItem } from './CommentItem';
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, FileText, Upload } from 'lucide-react';
 
 interface TaskCommentModalProps {
   task: Task | null;
@@ -47,7 +47,7 @@ export function TaskCommentModal({
             <DialogTitle>Comment</DialogTitle>
           </DialogHeader>
 
-          <div className="px-6 pb-4 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+          <div className="px-6 pb-4 grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
              <div>
                 <span className="font-semibold block text-foreground">Project:</span>
                 <span className="text-muted-foreground">{workflow.client.name}</span>
@@ -56,7 +56,38 @@ export function TaskCommentModal({
                <span className="font-semibold block text-foreground">Activity:</span>
                <span className="text-muted-foreground">{task.name}</span>
              </div>
-
+             {task.attachments && task.attachments.length > 0 && (
+                <div className="col-span-2">
+                    <span className="font-semibold block text-foreground mb-2">Attachments:</span>
+                    <div className="flex flex-wrap gap-2">
+                        {task.attachments.map((file, i) => (
+                            <div key={i} className="flex items-center gap-2 bg-muted/50 border border-border rounded-md px-3 py-2 text-sm">
+                                <FileText className="w-4 h-4 text-primary" />
+                                <span className="text-foreground max-w-[200px] truncate" title={file}>{file}</span>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-6 w-6 p-0 ml-1 text-muted-foreground hover:text-primary"
+                                    onClick={() => {
+                                        // Simulate download
+                                        const blob = new Blob(["Mock file content"], { type: "text/plain" });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement("a");
+                                        a.href = url;
+                                        a.download = file;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        document.body.removeChild(a);
+                                        URL.revokeObjectURL(url);
+                                    }}
+                                >
+                                    <Upload className="w-3 h-3 rotate-180" />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+             )}
           </div>
 
           <div className="flex-1 overflow-hidden flex flex-col border-t border-b bg-muted/5">

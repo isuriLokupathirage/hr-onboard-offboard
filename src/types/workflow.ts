@@ -1,4 +1,4 @@
-export type Department = 'HR' | 'IT' | 'Finance' | 'Marketing';
+export type Department = 'HR' | 'IT' | 'Finance' | 'Marketing' | 'Legal';
 export type WorkflowType = 'Onboarding' | 'Offboarding';
 export type WorkflowStatus = 'In Progress' | 'Completed' | 'Cancelled';
 export type TaskStatus = 'Open' | 'In Progress' | 'Need Info' | 'Done';
@@ -33,12 +33,12 @@ export interface CommentAuthor {
   avatar?: string;
 }
 
-export interface Comment {
+export interface WorkflowComment {
   id: string;
   text: string;
   author: CommentAuthor;
   createdAt: string;
-  replies: Comment[];
+  replies: WorkflowComment[];
 }
 
 export interface Task {
@@ -62,9 +62,10 @@ export interface Task {
       uploadedAt: string;
     }>;
   };
-  comments?: Comment[];
+  comments?: WorkflowComment[];
   dependentOn?: string[]; // Array of Task IDs this task depends on
   indent?: number; // Visual indentation level (0-3)
+  attachments?: string[]; // Array of file names or URLs
 }
 
 export interface Stage {
@@ -180,9 +181,12 @@ export interface EmployeeAccount {
   familyMembers?: FamilyMember[];
   documents?: EmployeeDocument[];
   
+  
   // Offboarding Persistence
   offboardingType?: OffboardingType;
   exitReason?: ExitReason;
+  resignationLetterDate?: string;
+  resignationEffectiveDate?: string;
   lastWorkingDay?: string;
   offboardingDocuments?: string[]; // URLs or paths to documents
   
@@ -210,6 +214,8 @@ export type ExitReason =
 export interface OffboardingDetails {
   type: OffboardingType;
   exitReason: ExitReason;
+  resignationLetterDate?: string;
+  resignationEffectiveDate?: string;
   lastWorkingDay: string;
   documents: string[];
 }
@@ -220,6 +226,7 @@ export interface Workflow {
   type: WorkflowType;
   client: Client;
   employee: {
+    id: string;
     name: string;
     title?: string;
     email?: string;
@@ -253,9 +260,12 @@ export interface TemplateTask {
   department: Department;
   priority?: Priority;
   requiredDate?: string;
+  dueDateConfig?: DueDateConfig;
+  notificationConfig?: string;
   actionType?: WorkflowAction;
   dependentOn?: string[];
   indent?: number;
+  attachments?: string[];
 }
 
 export interface TemplateStage {
@@ -272,6 +282,32 @@ export interface WorkflowTemplate {
   type: WorkflowType;
   client: Client;
   stages: TemplateStage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AssigneeType = 'Employee' | 'Manager' | 'HR' | 'IT' | 'Finance' | 'Legal';
+
+export type TaskCategory = 'HR Tasks' | 'Miscellaneous' | 'IT Setup' | 'Manager Tasks' | 'New Employee Paperwork';
+
+export interface DueDateConfig {
+  type: 'none' | 'on-hire' | 'relative';
+  days?: number;
+  unit?: 'days' | 'weeks' | 'months';
+  direction?: 'before' | 'after';
+}
+
+export interface LibraryTask {
+  id: string;
+  name: string;
+  department: Department;
+  priority?: Priority;
+  category?: TaskCategory | string;
+  allowFileUpload?: boolean;
+  dueDateConfig: DueDateConfig;
+  notificationConfig: string;
+  description: string;
+  attachments: string[]; // URLs or file names
   createdAt: string;
   updatedAt: string;
 }

@@ -42,7 +42,7 @@ const AppRoutes = () => {
           <Route path="/admin/directory/:id" element={<ProtectedRoute><EmployeeDetail /></ProtectedRoute>} />
           <Route path="/workflows" element={<ProtectedRoute><Workflows /></ProtectedRoute>} />
           <Route path="/workflows/:id" element={<ProtectedRoute><WorkflowDetail /></ProtectedRoute>} />
-          <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
+          <Route path="/templates/:type?" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
           <Route path="/templates/create" element={<ProtectedRoute><CreateTemplate /></ProtectedRoute>} />
           <Route path="/templates/:id/edit" element={<ProtectedRoute><CreateTemplate /></ProtectedRoute>} />
           <Route path="/start/:type" element={<ProtectedRoute><StartProcess /></ProtectedRoute>} />

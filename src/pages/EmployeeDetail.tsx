@@ -153,13 +153,15 @@ export default function EmployeeDetail() {
         </Dialog>
 
 
-        {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="personal">Personal</TabsTrigger>
             <TabsTrigger value="employment">Employment</TabsTrigger>
             <TabsTrigger value="financial">Financial & Legal</TabsTrigger>
+            {employee.status === 'Inactive' && (
+              <TabsTrigger value="offboarding">Offboarding</TabsTrigger>
+            )}
             <TabsTrigger value="documents">Documents</TabsTrigger>
           </TabsList>
 
@@ -379,6 +381,67 @@ export default function EmployeeDetail() {
             </Card>
           </TabsContent>
           
+          <TabsContent value="offboarding">
+            <Card>
+              <CardHeader>
+                <CardTitle>Offboarding Details</CardTitle>
+                <CardDescription>Information about the employee's offboarding process</CardDescription>
+              </CardHeader>
+              <CardContent>
+                 <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                         <div>
+                            <p className="text-sm font-medium mb-1">Offboarding Type</p>
+                            <p className="text-sm text-muted-foreground">{employee.offboardingType || '-'}</p>
+                        </div>
+                         <div>
+                            <p className="text-sm font-medium mb-1">Exit Reason</p>
+                            <p className="text-sm text-muted-foreground">{employee.exitReason || '-'}</p>
+                        </div>
+                         <div>
+                            <p className="text-sm font-medium mb-1">Offboarded Date</p>
+                            <p className="text-sm text-muted-foreground">{employee.offboardedAt ? new Date(employee.offboardedAt).toLocaleDateString() : '-'}</p>
+                        </div>
+                    </div>
+                    
+                    <div className="border-t pt-4">
+                       <h3 className="font-semibold mb-4 text-sm">Important Dates</h3>
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div>
+                              <p className="text-sm font-medium mb-1">Resignation Letter Date</p>
+                              <p className="text-sm text-muted-foreground">{employee.resignationLetterDate ? new Date(employee.resignationLetterDate).toLocaleDateString() : '-'}</p>
+                          </div>
+                          <div>
+                              <p className="text-sm font-medium mb-1">Resignation Effective Date</p>
+                              <p className="text-sm text-muted-foreground">{employee.resignationEffectiveDate ? new Date(employee.resignationEffectiveDate).toLocaleDateString() : '-'}</p>
+                          </div>
+                          <div>
+                              <p className="text-sm font-medium mb-1">Last Working Day</p>
+                              <p className="text-sm text-muted-foreground">{employee.lastWorkingDay ? new Date(employee.lastWorkingDay).toLocaleDateString() : '-'}</p>
+                          </div>
+                       </div>
+                    </div>
+
+                    {employee.offboardingDocuments && employee.offboardingDocuments.length > 0 && (
+                      <div className="border-t pt-4">
+                         <h3 className="font-semibold mb-4 text-sm">Offboarding Documents</h3>
+                         <div className="space-y-2">
+                            {employee.offboardingDocuments.map((docName, idx) => (
+                                <div key={idx} className="flex items-center gap-3 p-3 border rounded-lg bg-muted/20">
+                                    <FileText className="w-5 h-5 text-primary" />
+                                    <div>
+                                        <p className="text-sm font-medium">{docName}</p>
+                                    </div>
+                                </div>
+                            ))}
+                         </div>
+                      </div>
+                    )}
+                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+           
            <TabsContent value="documents">
              <Card>
                 <CardHeader>

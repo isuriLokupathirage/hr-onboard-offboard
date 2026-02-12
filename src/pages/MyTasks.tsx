@@ -175,6 +175,45 @@ export default function MyTasks() {
     }
   };
 
+  // Helper to ensure we have a valid ID even for legacy data
+  const getEmpId = (workflow: any) => {
+    return workflow.employee.id || workflow.employee.email || workflow.employee.name;
+  };
+
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+
+  // Group filtered tasks by employee
+  const employeesWithTasks = useMemo(() => {
+    const groups = new Map();
+    filteredTasks.forEach(({ task, workflow }) => {
+      const empId = getEmpId(workflow);
+      if (!groups.has(empId)) {
+        groups.set(empId, {
+          id: empId, // Store the resolved ID
+          employee: workflow.employee,
+          client: workflow.client,
+          tasks: [],
+          pendingCount: 0
+        });
+      }
+      const group = groups.get(empId);
+      group.tasks.push(task);
+      if (task.status !== 'Done') {
+        group.pendingCount++;
+      }
+    });
+    return Array.from(groups.values());
+  }, [filteredTasks]);
+
+  // If an employee is selected, filter the tasks for the view
+  const displayTasks = useMemo(() => {
+    if (!selectedEmployeeId) return [];
+    return filteredTasks.filter(t => getEmpId(t.workflow) === selectedEmployeeId);
+  }, [filteredTasks, selectedEmployeeId]);
+
+  // Recalculate stats for the *selected* view (all or specific employee)
+  // Actually the top stats should probably reflect GLOBAL status always? 
+  // Or context specific? Let's keep them global for "My Assigned Tasks" overview.
   const openCount = myTasks.filter((t) => t.task.status === 'Open').length;
   const inProgressCount = myTasks.filter((t) => t.task.status === 'In Progress').length;
   const needInfoCount = myTasks.filter((t) => t.task.status === 'Need Info').length;
@@ -182,10 +221,20 @@ export default function MyTasks() {
 
   if (!user) return null;
 
+  const handleEmployeeClick = (empId: string) => {
+    setSelectedEmployeeId(empId);
+    // Reset selection and filters when switching views to show everything
+    setSelectedTaskId(null);
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setClientFilter('all');
+    setSearchQuery(''); 
+  };
+
   return (
-    <AppLayout title="My Assigned Tasks" subtitle={`${myTasks.length} total tasks`}>
+    <AppLayout title="My Assigned Tasks" subtitle={selectedEmployeeId ? "Employee Details" : `${myTasks.length} total tasks across ${employeesWithTasks.length} employees`}>
       <div className="space-y-6">
-        {/* Stats Summary */}
+        {/* Stats Summary - Always Global */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-lg p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
@@ -225,7 +274,7 @@ export default function MyTasks() {
           </div>
         </div>
 
-        {/* Filters and View Toggle */}
+        {/* Global Filters */}
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -275,141 +324,156 @@ export default function MyTasks() {
                 ))}
               </SelectContent>
             </Select>
-
-            {/* View Toggle */}
-            <div className="flex items-center gap-1 bg-muted rounded-lg p-1 ml-auto">
-              <Button
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className="gap-1"
-              >
-                <List className="w-4 h-4" />
-                List
-              </Button>
-              <Button
-                variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('kanban')}
-                className="gap-1"
-              >
-                <LayoutGrid className="w-4 h-4" />
-                Kanban
-              </Button>
-            </div>
           </div>
         </div>
 
-        {/* Task Views */}
-        {viewMode === 'list' ? (
-          <div className="space-y-4">
-            {filteredTasks.length === 0 ? (
-              <div className="bg-card border border-border rounded-lg p-12 text-center">
-                <p className="text-muted-foreground">No tasks match your filters</p>
+        {/* Content Area */}
+        {!selectedEmployeeId ? (
+          /* Employee Grid View */
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {employeesWithTasks.map((group) => (
+              <div 
+                key={group.id}
+                onClick={() => handleEmployeeClick(group.id)}
+                className="bg-card border border-border rounded-xl p-5 cursor-pointer hover:border-sidebar-primary/50 hover:shadow-md transition-all group"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-lg font-bold text-secondary-foreground">
+                    {group.employee.name.charAt(0)}
+                  </div>
+                  <div className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded-full">
+                    {group.pendingCount} Tasks
+                  </div>
+                </div>
+                
+                <h3 className="font-semibold text-foreground text-lg mb-1 group-hover:text-primary transition-colors">
+                  {group.employee.name}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3">{group.employee.position} • {group.employee.department}</p>
+                
+                <div className="pt-4 border-t border-border flex items-center justify-between">
+                   <div className="flex items-center gap-2">
+                     <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-[10px] font-bold">
+                        {group.client.name.charAt(0)}
+                     </div>
+                     <span className="text-sm text-foreground">{group.client.name}</span>
+                   </div>
+                </div>
               </div>
-            ) : (
-              filteredTasks.map(({ task, workflow, stage, isAvailable }) => (
-                <TaskExecutionCard
-                  key={task.id}
-                  task={task}
-                  workflow={workflow}
-                  stage={stage}
-                  isAvailable={isAvailable}
-                  onStatusChange={handleStatusChange}
-                  onClick={() => setSelectedTaskId(task.id)}
-                />
-              ))
+            ))}
+            
+            {employeesWithTasks.length === 0 && (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                <p>No employees found with assigned tasks matching your filters.</p>
+              </div>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Open Column - Gray/Muted */}
-            <div className="bg-muted/30 border-t-4 border-muted-foreground/40 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-3 h-3 rounded-full bg-muted-foreground/40" />
-                <h3 className="font-semibold text-foreground">Open</h3>
-                <span className="text-sm text-muted-foreground">({tasksByStatus['Open'].length})</span>
+          /* Task Drill-Down View */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <div className="flex items-center gap-4">
+                <Button 
+                    variant="ghost" 
+                    onClick={() => setSelectedEmployeeId(null)}
+                    className="gap-2 pl-0 hover:pl-2 transition-all text-muted-foreground hover:text-foreground"
+                >
+                    ← Back to Employees
+                </Button>
+                {(() => {
+                    const emp = myTasks.find(t => getEmpId(t.workflow) === selectedEmployeeId)?.workflow.employee;
+                    return emp ? (
+                    <div className="flex items-center gap-3 border-l pl-4 border-border">
+                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">
+                            {emp.name.charAt(0)}
+                        </div>
+                        <div>
+                            <p className="font-medium text-sm leading-none">{emp.name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{emp.position}</p>
+                        </div>
+                    </div>
+                    ) : null;
+                })()}
               </div>
-              <div className="space-y-3">
-                {tasksByStatus['Open'].map(({ task, workflow, stage, isAvailable }) => (
-                  <TaskKanbanCard
-                    key={task.id}
-                    task={task}
-                    workflow={workflow}
-                    stage={stage}
-                    isAvailable={isAvailable}
-                    onStatusChange={handleStatusChange}
-                    onClick={() => setSelectedTaskId(task.id)}
-                  />
-                ))}
+
+              {/* View Toggle - Moved here */}
+              <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                <Button
+                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="gap-1 h-8"
+                >
+                  <List className="w-4 h-4" />
+                  List
+                </Button>
+                <Button
+                  variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('kanban')}
+                  className="gap-1 h-8"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  Kanban
+                </Button>
               </div>
             </div>
 
-            {/* In Progress Column - Yellow/Warning */}
-            <div className="bg-warning/5 border-t-4 border-warning rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-3 h-3 rounded-full bg-warning" />
-                <h3 className="font-semibold text-foreground">In Progress</h3>
-                <span className="text-sm text-muted-foreground">({tasksByStatus['In Progress'].length})</span>
+            {viewMode === 'list' ? (
+              <div className="space-y-4">
+                {displayTasks.map(({ task, workflow, stage, isAvailable }) => (
+                    <TaskExecutionCard
+                      key={task.id}
+                      task={task}
+                      workflow={workflow}
+                      stage={stage}
+                      isAvailable={isAvailable}
+                      onStatusChange={handleStatusChange}
+                      onClick={() => setSelectedTaskId(task.id)}
+                    />
+                  ))
+                }
+                {displayTasks.length === 0 && (
+                  <div className="text-center py-12 text-muted-foreground bg-card border border-border rounded-xl">
+                    <p>No tasks found for this employee.</p>
+                  </div>
+                )}
               </div>
-              <div className="space-y-3">
-                {tasksByStatus['In Progress'].map(({ task, workflow, stage, isAvailable }) => (
-                  <TaskKanbanCard
-                    key={task.id}
-                    task={task}
-                    workflow={workflow}
-                    stage={stage}
-                    isAvailable={isAvailable}
-                    onStatusChange={handleStatusChange}
-                    onClick={() => setSelectedTaskId(task.id)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Need Information Column - Blue/Info */}
-            <div className="bg-info/5 border-t-4 border-info rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-3 h-3 rounded-full bg-info" />
-                <h3 className="font-semibold text-foreground">Need Info</h3>
-                <span className="text-sm text-muted-foreground">({tasksByStatus['Need Info'].length})</span>
-              </div>
-              <div className="space-y-3">
-                {tasksByStatus['Need Info'].map(({ task, workflow, stage, isAvailable }) => (
-                  <TaskKanbanCard
-                    key={task.id}
-                    task={task}
-                    workflow={workflow}
-                    stage={stage}
-                    isAvailable={isAvailable}
-                    onStatusChange={handleStatusChange}
-                    onClick={() => setSelectedTaskId(task.id)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Completed Column - Green/Success */}
-            <div className="bg-success/5 border-t-4 border-success rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-3 h-3 rounded-full bg-success" />
-                <h3 className="font-semibold text-foreground">Done</h3>
-                <span className="text-sm text-muted-foreground">({tasksByStatus['Done'].length})</span>
-              </div>
-              <div className="space-y-3">
-                {tasksByStatus['Done'].map(({ task, workflow, stage, isAvailable }) => (
-                  <TaskKanbanCard
-                    key={task.id}
-                    task={task}
-                    workflow={workflow}
-                    stage={stage}
-                    isAvailable={isAvailable}
-                    onStatusChange={handleStatusChange}
-                    onClick={() => setSelectedTaskId(task.id)}
-                  />
-                ))}
-              </div>
-            </div>
+            ) : (
+             /* Kanban View logic adapted for displayTasks */
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {['Open', 'In Progress', 'Need Info', 'Done'].map(status => {
+                  const tasks = displayTasks.filter(t => t.task.status === status);
+                  const statusColor = 
+                    status === 'Open' ? 'muted' :
+                    status === 'In Progress' ? 'warning' :
+                    status === 'Need Info' ? 'info' : 'success';
+                  
+                  return (
+                    <div key={status} className={`bg-${statusColor}/5 border-t-4 border-${status === 'Open' ? 'muted-foreground/40' : statusColor} rounded-xl p-4 min-h-[200px]`}>
+                      <div className="flex items-center gap-2 mb-4">
+                         <div className={`w-3 h-3 rounded-full bg-${status === 'Open' ? 'muted-foreground/40' : statusColor}`} />
+                         <h3 className="font-semibold text-foreground">{status}</h3>
+                         <span className="text-sm text-muted-foreground">({tasks.length})</span>
+                      </div>
+                      <div className="space-y-3">
+                        {tasks.map(({ task, workflow, stage, isAvailable }) => (
+                          <TaskKanbanCard
+                            key={task.id}
+                            task={task}
+                            workflow={workflow}
+                            stage={stage}
+                            isAvailable={isAvailable}
+                            onStatusChange={handleStatusChange}
+                            onClick={() => setSelectedTaskId(task.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+             </div>
+            )}
           </div>
         )}
 
@@ -423,7 +487,7 @@ export default function MyTasks() {
           id: user.id,
           name: user.name,
           email: user.email,
-          isAdmin: !!user.isAdmin, // Ensure boolean
+          isAdmin: !!user.isAdmin, 
           avatar: user.avatar
         }}
         onStatusChange={(status, note) => {
@@ -459,5 +523,6 @@ export default function MyTasks() {
       </div>
     </AppLayout>
   );
+
 }
 
