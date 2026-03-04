@@ -248,6 +248,16 @@ export default function CreateTemplate() {
     }
   };
 
+  const handleClearTemplate = () => {
+    setCopyFromTemplate('');
+    setStages([]);
+    setTasks([]);
+    toast({
+      title: 'Template Cleared',
+      description: 'The selected template and its tasks have been removed.',
+    });
+  };
+
   const addStage = () => {
     const newStage: NewStage = {
       id: `stage-${Date.now()}-${stages.length}`,
@@ -777,24 +787,38 @@ export default function CreateTemplate() {
                 {workflowType && (
                   <div>
                     <Label htmlFor="copyTemplate">Copy from existing template (optional)</Label>
-                    <Select 
-                      value={copyFromTemplate} 
-                      onValueChange={(value) => {
-                        setCopyFromTemplate(value);
-                        if (value) handleCopyTemplate(value);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select template to copy from" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableTemplates.map((template) => (
-                          <SelectItem key={template.id} value={template.id}>
-                            {template.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <Select 
+                        value={copyFromTemplate} 
+                        onValueChange={(value) => {
+                          setCopyFromTemplate(value);
+                          if (value) handleCopyTemplate(value);
+                        }}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Select template to copy from" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableTemplates.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              {template.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {copyFromTemplate && (
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={handleClearTemplate}
+                          className="shrink-0 text-muted-foreground hover:text-destructive hover:border-destructive"
+                          title="Clear template selection"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

@@ -229,8 +229,10 @@ export default function StartProcess() {
   // Offboarding State
   const [offboardingType, setOffboardingType] = useState<OffboardingType>('Voluntary');
   const [exitReason, setExitReason] = useState<ExitReason | ''>('');
-  const [resignationLetterDate, setResignationLetterDate] = useState('');
   const [resignationEffectiveDate, setResignationEffectiveDate] = useState('');
+  const [noticePeriodStartDate, setNoticePeriodStartDate] = useState('');
+  const [payrollCutoffDate, setPayrollCutoffDate] = useState('');
+  const [actualTerminationDate, setActualTerminationDate] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [otherReason, setOtherReason] = useState('');
 
@@ -271,8 +273,10 @@ export default function StartProcess() {
             if (startWorkflow.offboardingDetails) {
                  setOffboardingType(startWorkflow.offboardingDetails.type);
                  setExitReason(startWorkflow.offboardingDetails.exitReason);
-                 setResignationLetterDate(startWorkflow.offboardingDetails.resignationLetterDate || '');
                  setResignationEffectiveDate(startWorkflow.offboardingDetails.resignationEffectiveDate || '');
+                 setNoticePeriodStartDate(startWorkflow.offboardingDetails.noticePeriodStartDate || '');
+                 setPayrollCutoffDate(startWorkflow.offboardingDetails.payrollCutoffDate || '');
+                 setActualTerminationDate(startWorkflow.offboardingDetails.actualTerminationDate || '');
             }
         }
 
@@ -442,8 +446,10 @@ export default function StartProcess() {
         ...selectedEmployee,
         offboardingType: offboardingType,
         exitReason: exitReason as ExitReason,
-        resignationLetterDate: resignationLetterDate || undefined,
         resignationEffectiveDate: resignationEffectiveDate || undefined,
+        noticePeriodStartDate: noticePeriodStartDate || undefined,
+        payrollCutoffDate: payrollCutoffDate || undefined,
+        actualTerminationDate: actualTerminationDate || undefined,
         lastWorkingDay: employeeDate,
         documents: [
           ...(selectedEmployee.documents || []),
@@ -507,8 +513,10 @@ export default function StartProcess() {
       offboardingDetails: workflowType === 'Offboarding' ? {
         type: offboardingType,
         exitReason: exitReason as ExitReason,
-        resignationLetterDate: resignationLetterDate || undefined,
         resignationEffectiveDate: resignationEffectiveDate || undefined,
+        noticePeriodStartDate: noticePeriodStartDate || undefined,
+        payrollCutoffDate: payrollCutoffDate || undefined,
+        actualTerminationDate: actualTerminationDate || undefined,
         lastWorkingDay: employeeDate,
         // Merge existing documents with new ones if needed, currently we just overwrite names from uploadedFiles
         // If editing, we might lose previous file names if we don't handle them.
@@ -695,7 +703,7 @@ export default function StartProcess() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Office Email (optional)</Label>
+                    <Label>Personal Email (optional)</Label>
                     <Input
                       type="email"
                       placeholder="employee@company.com"
@@ -704,7 +712,7 @@ export default function StartProcess() {
                     />
                   </div>
 
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label>Client *</Label>
                     <Select value={clientId} onValueChange={setClientId}>
                       <SelectTrigger>
@@ -718,7 +726,7 @@ export default function StartProcess() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div> */}
                   <div className="space-y-2">
                     <Label>Position *</Label>
                     <Input
@@ -931,20 +939,38 @@ export default function StartProcess() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Resignation Letter Date</Label>
-                            <Input
-                              type="date"
-                              value={resignationLetterDate}
-                              onChange={(e) => setResignationLetterDate(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
                             <Label>Resignation Effective Date</Label>
                             <Input
                               type="date"
                               value={resignationEffectiveDate}
                               onChange={(e) => setResignationEffectiveDate(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Notice Period Start Date</Label>
+                            <Input
+                              type="date"
+                              value={noticePeriodStartDate}
+                              onChange={(e) => setNoticePeriodStartDate(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Payroll Cut-off Date</Label>
+                            <Input
+                              type="date"
+                              value={payrollCutoffDate}
+                              onChange={(e) => setPayrollCutoffDate(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Actual Termination Date</Label>
+                            <Input
+                              type="date"
+                              value={actualTerminationDate}
+                              onChange={(e) => setActualTerminationDate(e.target.value)}
                             />
                         </div>
 

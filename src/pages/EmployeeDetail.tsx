@@ -405,13 +405,21 @@ export default function EmployeeDetail() {
                        <h3 className="font-semibold mb-4 text-sm">Important Dates</h3>
                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div>
-                              <p className="text-sm font-medium mb-1">Resignation Letter Date</p>
-                              <p className="text-sm text-muted-foreground">{employee.resignationLetterDate ? new Date(employee.resignationLetterDate).toLocaleDateString() : '-'}</p>
-                          </div>
-                          <div>
                               <p className="text-sm font-medium mb-1">Resignation Effective Date</p>
                               <p className="text-sm text-muted-foreground">{employee.resignationEffectiveDate ? new Date(employee.resignationEffectiveDate).toLocaleDateString() : '-'}</p>
                           </div>
+                           <div>
+                               <p className="text-sm font-medium mb-1">Notice Period Start Date</p>
+                               <p className="text-sm text-muted-foreground">{employee.noticePeriodStartDate ? new Date(employee.noticePeriodStartDate).toLocaleDateString() : '-'}</p>
+                           </div>
+                           <div>
+                               <p className="text-sm font-medium mb-1">Payroll Cut-off Date</p>
+                               <p className="text-sm text-muted-foreground">{employee.payrollCutoffDate ? new Date(employee.payrollCutoffDate).toLocaleDateString() : '-'}</p>
+                           </div>
+                           <div>
+                               <p className="text-sm font-medium mb-1">Actual Termination Date</p>
+                               <p className="text-sm text-muted-foreground">{employee.actualTerminationDate ? new Date(employee.actualTerminationDate).toLocaleDateString() : '-'}</p>
+                           </div>
                           <div>
                               <p className="text-sm font-medium mb-1">Last Working Day</p>
                               <p className="text-sm text-muted-foreground">{employee.lastWorkingDay ? new Date(employee.lastWorkingDay).toLocaleDateString() : '-'}</p>

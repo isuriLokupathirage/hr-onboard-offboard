@@ -185,8 +185,10 @@ export interface EmployeeAccount {
   // Offboarding Persistence
   offboardingType?: OffboardingType;
   exitReason?: ExitReason;
-  resignationLetterDate?: string;
   resignationEffectiveDate?: string;
+  noticePeriodStartDate?: string;
+  payrollCutoffDate?: string;
+  actualTerminationDate?: string;
   lastWorkingDay?: string;
   offboardingDocuments?: string[]; // URLs or paths to documents
   
@@ -214,8 +216,10 @@ export type ExitReason =
 export interface OffboardingDetails {
   type: OffboardingType;
   exitReason: ExitReason;
-  resignationLetterDate?: string;
   resignationEffectiveDate?: string;
+  noticePeriodStartDate?: string;
+  payrollCutoffDate?: string;
+  actualTerminationDate?: string;
   lastWorkingDay: string;
   documents: string[];
 }

@@ -492,7 +492,6 @@ export const completeWorkflow = (workflow: Workflow): void => {
         offboardedAt: new Date().toISOString(),
         offboardingType: workflow.offboardingDetails?.type,
         exitReason: workflow.offboardingDetails?.exitReason,
-        resignationLetterDate: workflow.offboardingDetails?.resignationLetterDate,
         resignationEffectiveDate: workflow.offboardingDetails?.resignationEffectiveDate,
         lastWorkingDay: workflow.offboardingDetails?.lastWorkingDay,
         offboardingDocuments: allDocuments,
