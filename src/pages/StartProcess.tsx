@@ -21,7 +21,17 @@ import { getTemplates, updateWorkflow, updateEmployeeAccount, getWorkflowById } 
 import { Flag, Calendar, Upload, File, X, AlertCircle } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import { OffboardingType, ExitReason } from '@/types/workflow';
+import { OffboardingType, ExitReason, ReferenceDate, REFERENCE_DATE_LABELS } from '@/types/workflow';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface TaskAssignment {
   taskId: string;
@@ -235,6 +245,9 @@ export default function StartProcess() {
   const [actualTerminationDate, setActualTerminationDate] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [otherReason, setOtherReason] = useState('');
+  const [missingDatesWarning, setMissingDatesWarning] = useState<ReferenceDate[]>([]);
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
+  const [warningDismissed, setWarningDismissed] = useState(false);
 
   const editWorkflowId = new URLSearchParams(location.search).get('edit');
 
@@ -431,6 +444,34 @@ export default function StartProcess() {
     const selectedClient = workflowType === 'Onboarding'
       ? clients.find(c => c.id === clientId)!
       : selectedEmployee?.client;
+
+    // Alternative Approach: Check for missing reference dates
+    if (workflowType === 'Offboarding' && selectedTemplateId && !warningDismissed) {
+      const template = templates.find(t => t.id === selectedTemplateId);
+      if (template) {
+        const referencedDates = new Set<ReferenceDate>();
+        template.stages.forEach(stage => {
+          stage.tasks.forEach(task => {
+            if (task.dueDateConfig?.referenceDate) {
+              referencedDates.add(task.dueDateConfig.referenceDate);
+            }
+          });
+        });
+
+        const missing: ReferenceDate[] = [];
+        if (referencedDates.has('payroll-cutoff') && !payrollCutoffDate) missing.push('payroll-cutoff');
+        if (referencedDates.has('termination-date') && !actualTerminationDate) missing.push('termination-date');
+        if (referencedDates.has('notice-period-start') && !noticePeriodStartDate) missing.push('notice-period-start');
+        // last-working-day is already required (employeeDate), but for safety:
+        if (referencedDates.has('last-working-day') && !employeeDate) missing.push('last-working-day');
+
+        if (missing.length > 0) {
+          setMissingDatesWarning(missing);
+          setShowWarningDialog(true);
+          return;
+        }
+      }
+    }
 
     // Update Employee Profile with Offboarding Details if Offboarding
     if (workflowType === 'Offboarding' && selectedEmployee) {
@@ -1227,6 +1268,40 @@ export default function StartProcess() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-yellow-500" />
+              Missing Process Dates
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              The selected template contains tasks that reference dates you haven't provided:
+              <ul className="list-disc list-inside mt-2 space-y-1 font-medium text-foreground">
+                {missingDatesWarning.map(date => (
+                  <li key={date}>{REFERENCE_DATE_LABELS[date]}</li>
+                ))}
+              </ul>
+              <p className="mt-3">
+                These tasks will not have a specific due date until these process dates are set. 
+                Do you want to continue anyway?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go Back</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              setShowWarningDialog(false);
+              setWarningDismissed(true);
+              // Delay slightly to ensure state update is processed
+              setTimeout(handleSubmit, 100);
+            }}>
+              Continue Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

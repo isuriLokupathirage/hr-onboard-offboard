@@ -21,7 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { WorkflowTypeBadge } from '@/components/ui/status-badge';
-import { WorkflowType, WorkflowTemplate, Workflow, LibraryTask } from '@/types/workflow';
+import { WorkflowType, WorkflowTemplate, Workflow, LibraryTask, REFERENCE_DATE_LABELS } from '@/types/workflow';
 import { toast } from '@/hooks/use-toast';
 import { 
   getTemplates, 
@@ -289,10 +289,10 @@ export default function Templates() {
                           <TableCell>
                             <div className="flex flex-col gap-0.5">
                               {task.dueDateConfig.type === 'none' && <span className="text-muted-foreground">None</span>}
-                              {task.dueDateConfig.type === 'on-hire' && <span>On Hire Date</span>}
+                              {task.dueDateConfig.type === 'on-date' && <span>On {REFERENCE_DATE_LABELS[task.dueDateConfig.referenceDate || 'hire-date']}</span>}
                               {task.dueDateConfig.type === 'relative' && (
                                 <span className="text-sm">
-                                  {task.dueDateConfig.days} {task.dueDateConfig.unit} {task.dueDateConfig.direction} hire
+                                  {task.dueDateConfig.days} {task.dueDateConfig.unit} {task.dueDateConfig.direction} {REFERENCE_DATE_LABELS[task.dueDateConfig.referenceDate || 'hire-date']}
                                 </span>
                               )}
                             </div>
@@ -427,6 +427,7 @@ export default function Templates() {
         task={editingLibraryTask}
         onClose={() => setIsLibraryModalOpen(false)}
         onSave={handleSaveLibraryTask}
+        workflowType={typeFilter !== 'all' ? typeFilter : ''}
       />
 
       <LibraryTaskViewModal

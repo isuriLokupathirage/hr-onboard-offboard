@@ -29,7 +29,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { users, clients, onboardingStageTemplates, offboardingStageTemplates } from '@/data/mockData';
-import { WorkflowType, Department, WorkflowAction, Priority, LibraryTask } from '@/types/workflow';
+import { WorkflowType, Department, WorkflowAction, Priority, LibraryTask, ReferenceDate, REFERENCE_DATE_LABELS, ONBOARDING_REFERENCE_DATES, OFFBOARDING_REFERENCE_DATES } from '@/types/workflow';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -48,10 +48,11 @@ interface NewTask {
   priority?: Priority;
   requiredDate?: string;
   dueDateConfig?: {
-    type: 'none' | 'on-hire' | 'relative';
+    type: 'none' | 'on-date' | 'relative';
     days?: number;
     unit?: 'days' | 'weeks' | 'months';
     direction?: 'before' | 'after';
+    referenceDate?: ReferenceDate;
   };
   notificationConfig?: string;
   dependentOn?: string[];
@@ -1083,52 +1084,71 @@ export default function CreateTemplate() {
                                            <SelectTrigger className="h-7 text-xs w-[110px] bg-background">
                                              <SelectValue />
                                            </SelectTrigger>
-                                           <SelectContent>
-                                            <SelectItem value="none">None</SelectItem>
-                                            <SelectItem value="on-hire">On Hire Date</SelectItem>
-                                            <SelectItem value="relative">Relative</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                       </div>
+                                            <SelectContent>
+                                             <SelectItem value="none">None</SelectItem>
+                                             <SelectItem value="on-date">On Date</SelectItem>
+                                             <SelectItem value="relative">Relative</SelectItem>
+                                           </SelectContent>
+                                         </Select>
+                                        </div>
+
+                                        {(task.dueDateConfig?.type === 'on-date' || task.dueDateConfig?.type === 'relative') && (
+                                          <div className="flex items-center gap-2 pl-6 animate-fade-in">
+                                            <span className="text-xs text-muted-foreground">Ref:</span>
+                                            <Select
+                                              value={task.dueDateConfig.referenceDate || 'hire-date'}
+                                              onValueChange={(v: any) => updateRootTask(task.id, {
+                                                dueDateConfig: { ...task.dueDateConfig!, referenceDate: v }
+                                              })}
+                                            >
+                                              <SelectTrigger className="h-7 w-40 text-xs bg-background"><SelectValue /></SelectTrigger>
+                                              <SelectContent>
+                                                {(workflowType === 'Offboarding' ? OFFBOARDING_REFERENCE_DATES : workflowType === 'Onboarding' ? ONBOARDING_REFERENCE_DATES : [...ONBOARDING_REFERENCE_DATES, ...OFFBOARDING_REFERENCE_DATES]).map((value) => (
+                                                  <SelectItem key={value} value={value}>{REFERENCE_DATE_LABELS[value]}</SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        )}
  
-                                       {task.dueDateConfig?.type === 'relative' && (
-                                         <div className="flex items-center gap-2 pl-6 animate-fade-in">
-                                           <span className="text-xs text-muted-foreground">Due</span>
-                                           <Input
-                                             type="number"
-                                             className="h-7 w-14 text-xs bg-background"
-                                             value={task.dueDateConfig.days || ''}
-                                             onChange={(e) => updateRootTask(task.id, {
-                                               dueDateConfig: { ...task.dueDateConfig!, days: parseInt(e.target.value) || 0 }
-                                             })}
-                                           />
-                                           <Select
-                                             value={task.dueDateConfig.unit || 'days'}
-                                             onValueChange={(v: any) => updateRootTask(task.id, {
-                                               dueDateConfig: { ...task.dueDateConfig!, unit: v }
-                                             })}
-                                           >
-                                             <SelectTrigger className="h-7 w-20 text-xs bg-background"><SelectValue /></SelectTrigger>
-                                             <SelectContent>
-                                               <SelectItem value="days">Days</SelectItem>
-                                               <SelectItem value="weeks">Weeks</SelectItem>
-                                             </SelectContent>
-                                           </Select>
-                                           <Select
-                                             value={task.dueDateConfig.direction || 'after'}
-                                             onValueChange={(v: any) => updateRootTask(task.id, {
-                                               dueDateConfig: { ...task.dueDateConfig!, direction: v }
-                                             })}
-                                           >
-                                             <SelectTrigger className="h-7 w-20 text-xs bg-background"><SelectValue /></SelectTrigger>
-                                             <SelectContent>
-                                               <SelectItem value="before">Before</SelectItem>
-                                               <SelectItem value="after">After</SelectItem>
-                                             </SelectContent>
-                                           </Select>
-                                           <span className="text-xs text-muted-foreground">hire</span>
-                                         </div>
-                                       )}
+                                        {task.dueDateConfig?.type === 'relative' && (
+                                          <div className="flex items-center gap-2 pl-6 animate-fade-in">
+                                            <span className="text-xs text-muted-foreground">Due</span>
+                                            <Input
+                                              type="number"
+                                              className="h-7 w-14 text-xs bg-background"
+                                              value={task.dueDateConfig.days || ''}
+                                              onChange={(e) => updateRootTask(task.id, {
+                                                dueDateConfig: { ...task.dueDateConfig!, days: parseInt(e.target.value) || 0 }
+                                              })}
+                                            />
+                                            <Select
+                                              value={task.dueDateConfig.unit || 'days'}
+                                              onValueChange={(v: any) => updateRootTask(task.id, {
+                                                dueDateConfig: { ...task.dueDateConfig!, unit: v }
+                                              })}
+                                            >
+                                              <SelectTrigger className="h-7 w-20 text-xs bg-background"><SelectValue /></SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="days">Days</SelectItem>
+                                                <SelectItem value="weeks">Weeks</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                            <Select
+                                              value={task.dueDateConfig.direction || 'after'}
+                                              onValueChange={(v: any) => updateRootTask(task.id, {
+                                                dueDateConfig: { ...task.dueDateConfig!, direction: v }
+                                              })}
+                                            >
+                                              <SelectTrigger className="h-7 w-20 text-xs bg-background"><SelectValue /></SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="before">Before</SelectItem>
+                                                <SelectItem value="after">After</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                            <span className="text-xs text-muted-foreground">{REFERENCE_DATE_LABELS[task.dueDateConfig.referenceDate || 'hire-date']}</span>
+                                          </div>
+                                        )}
                                      </div>
  
                                      <div className="space-y-1.5 mt-3">
@@ -1409,11 +1429,32 @@ export default function CreateTemplate() {
                                         </SelectTrigger>
                                         <SelectContent>
                                           <SelectItem value="none">None</SelectItem>
-                                          <SelectItem value="on-hire">On Hire Date</SelectItem>
+                                          <SelectItem value="on-date">On Date</SelectItem>
                                           <SelectItem value="relative">Relative</SelectItem>
                                         </SelectContent>
                                       </Select>
                                     </div>
+
+                                    {(task.dueDateConfig?.type === 'on-date' || task.dueDateConfig?.type === 'relative') && (
+                                      <div className="flex items-center gap-2 pt-1 animate-in fade-in slide-in-from-top-1">
+                                        <span className="text-xs text-muted-foreground">Ref:</span>
+                                        <Select
+                                          value={task.dueDateConfig.referenceDate || 'hire-date'}
+                                          onValueChange={(v: any) => updateRootTask(task.id, {
+                                            dueDateConfig: { ...task.dueDateConfig, referenceDate: v }
+                                          })}
+                                        >
+                                          <SelectTrigger className="h-8 w-44">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {(workflowType === 'Offboarding' ? OFFBOARDING_REFERENCE_DATES : workflowType === 'Onboarding' ? ONBOARDING_REFERENCE_DATES : [...ONBOARDING_REFERENCE_DATES, ...OFFBOARDING_REFERENCE_DATES]).map((value) => (
+                                              <SelectItem key={value} value={value}>{REFERENCE_DATE_LABELS[value]}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    )}
 
                                     {task.dueDateConfig?.type === 'relative' && (
                                       <div className="flex items-center gap-2 pt-1 animate-in fade-in slide-in-from-top-1">
@@ -1454,6 +1495,7 @@ export default function CreateTemplate() {
                                             <SelectItem value="before">before</SelectItem>
                                           </SelectContent>
                                         </Select>
+                                        <span className="text-xs text-muted-foreground">{REFERENCE_DATE_LABELS[task.dueDateConfig.referenceDate || 'hire-date']}</span>
                                       </div>
                                     )}
                                   </div>
@@ -1658,6 +1700,7 @@ export default function CreateTemplate() {
                 }}
                 onSave={handleSaveTaskFromModal}
                 task={selectedTaskForModal || undefined}
+                workflowType={workflowType}
               />
             </div>
             </>
@@ -1717,8 +1760,8 @@ export default function CreateTemplate() {
                                 <Clock className="w-3 h-3" />
                                 <span className="text-[11px]">
                                   {task.dueDateConfig?.type === 'none' && 'No due date'}
-                                  {task.dueDateConfig?.type === 'on-hire' && 'On hire date'}
-                                  {task.dueDateConfig?.type === 'relative' && `${task.dueDateConfig.days} ${task.dueDateConfig.unit} ${task.dueDateConfig.direction} hire`}
+                                  {task.dueDateConfig?.type === 'on-date' && `On ${REFERENCE_DATE_LABELS[task.dueDateConfig.referenceDate || 'hire-date']}`}
+                                  {task.dueDateConfig?.type === 'relative' && `${task.dueDateConfig.days} ${task.dueDateConfig.unit} ${task.dueDateConfig.direction} ${REFERENCE_DATE_LABELS[task.dueDateConfig.referenceDate || 'hire-date']}`}
                                 </span>
                               </div>
                             </div>
@@ -1790,8 +1833,8 @@ export default function CreateTemplate() {
                                   <Clock className="w-3 h-3" />
                                   <span className="text-[11px]">
                                     {task.dueDateConfig?.type === 'none' && 'No due date'}
-                                    {task.dueDateConfig?.type === 'on-hire' && 'On hire date'}
-                                    {task.dueDateConfig?.type === 'relative' && `${task.dueDateConfig.days} ${task.dueDateConfig.unit} ${task.dueDateConfig.direction} hire`}
+                                    {task.dueDateConfig?.type === 'on-date' && `On ${REFERENCE_DATE_LABELS[task.dueDateConfig.referenceDate || 'hire-date']}`}
+                                    {task.dueDateConfig?.type === 'relative' && `${task.dueDateConfig.days} ${task.dueDateConfig.unit} ${task.dueDateConfig.direction} ${REFERENCE_DATE_LABELS[task.dueDateConfig.referenceDate || 'hire-date']}`}
                                   </span>
                                 </div>
                               </div>

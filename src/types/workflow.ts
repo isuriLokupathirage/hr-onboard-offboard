@@ -294,11 +294,35 @@ export type AssigneeType = 'Employee' | 'Manager' | 'HR' | 'IT' | 'Finance' | 'L
 
 export type TaskCategory = 'HR Tasks' | 'Miscellaneous' | 'IT Setup' | 'Manager Tasks' | 'New Employee Paperwork';
 
+export type ReferenceDate = 
+  | 'hire-date'
+  | 'last-working-day'
+  | 'payroll-cutoff'
+  | 'termination-date'
+  | 'notice-period-start';
+
+export const REFERENCE_DATE_LABELS: Record<ReferenceDate, string> = {
+  'hire-date': 'Hire Date',
+  'last-working-day': 'Last Working Day',
+  'payroll-cutoff': 'Payroll Cutoff Date',
+  'termination-date': 'Termination Date',
+  'notice-period-start': 'Notice Period Start',
+};
+
+export const ONBOARDING_REFERENCE_DATES: ReferenceDate[] = ['hire-date'];
+export const OFFBOARDING_REFERENCE_DATES: ReferenceDate[] = [
+  'last-working-day',
+  'payroll-cutoff',
+  'termination-date',
+  'notice-period-start',
+];
+
 export interface DueDateConfig {
-  type: 'none' | 'on-hire' | 'relative';
+  type: 'none' | 'on-date' | 'relative';
   days?: number;
   unit?: 'days' | 'weeks' | 'months';
   direction?: 'before' | 'after';
+  referenceDate?: ReferenceDate;
 }
 
 export interface LibraryTask {

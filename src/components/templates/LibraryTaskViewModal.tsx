@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { LibraryTask } from '@/types/workflow';
+import { LibraryTask, REFERENCE_DATE_LABELS } from '@/types/workflow';
 import { Calendar, Building2, FileText, Bell, Edit2 } from 'lucide-react';
 
 interface LibraryTaskViewModalProps {
@@ -42,8 +42,8 @@ export function LibraryTaskViewModal({ task, isOpen, onClose }: LibraryTaskViewM
               <div className="flex items-center gap-1.5 bg-muted px-2.5 py-1 rounded-full text-muted-foreground font-medium border border-border">
                 <Calendar className="w-3.5 h-3.5" />
                 {task.dueDateConfig.type === 'none' && 'No Due Date'}
-                {task.dueDateConfig.type === 'on-hire' && 'On Hire Date'}
-                {task.dueDateConfig.type === 'relative' && `${task.dueDateConfig.days} ${task.dueDateConfig.unit} ${task.dueDateConfig.direction} hire`}
+                {task.dueDateConfig.type === 'on-date' && `On ${REFERENCE_DATE_LABELS[task.dueDateConfig.referenceDate || 'hire-date']}`}
+                {task.dueDateConfig.type === 'relative' && `${task.dueDateConfig.days} ${task.dueDateConfig.unit} ${task.dueDateConfig.direction} ${REFERENCE_DATE_LABELS[task.dueDateConfig.referenceDate || 'hire-date']}`}
               </div>
             </div>
           </div>

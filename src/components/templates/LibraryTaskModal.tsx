@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { LibraryTask, Department, TaskCategory, DueDateConfig, Priority } from '@/types/workflow';
+import { LibraryTask, Department, TaskCategory, DueDateConfig, Priority, ReferenceDate, REFERENCE_DATE_LABELS, ONBOARDING_REFERENCE_DATES, OFFBOARDING_REFERENCE_DATES, WorkflowType } from '@/types/workflow';
 import { X, HelpCircle, Upload, FileText, Flag } from 'lucide-react';
 
 interface LibraryTaskModalProps {
@@ -27,17 +27,24 @@ interface LibraryTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (task: Omit<LibraryTask, 'id' | 'createdAt' | 'updatedAt'> | LibraryTask) => void;
+  workflowType?: WorkflowType | '';
 }
 
 const DEPARTMENTS: Department[] = ['HR', 'IT', 'Finance', 'Marketing', 'Legal'];
 
-export function LibraryTaskModal({ task, isOpen, onClose, onSave }: LibraryTaskModalProps) {
+export function LibraryTaskModal({ task, isOpen, onClose, onSave, workflowType }: LibraryTaskModalProps) {
+  const availableReferenceDates = workflowType === 'Offboarding' 
+    ? OFFBOARDING_REFERENCE_DATES 
+    : workflowType === 'Onboarding' 
+      ? ONBOARDING_REFERENCE_DATES 
+      : [...ONBOARDING_REFERENCE_DATES, ...OFFBOARDING_REFERENCE_DATES];
   const [name, setName] = useState('');
   const [assignTo, setAssignTo] = useState<string>('');
-  const [dueDateType, setDueDateType] = useState<'none' | 'on-hire' | 'relative'>('none');
+  const [dueDateType, setDueDateType] = useState<'none' | 'on-date' | 'relative'>('none');
   const [dueDays, setDueDays] = useState<string>('');
   const [dueUnit, setDueUnit] = useState<'days' | 'weeks' | 'months'>('days');
   const [dueDirection, setDueDirection] = useState<'before' | 'after'>('after');
+  const [referenceDate, setReferenceDate] = useState<ReferenceDate>('hire-date');
   const [notificationConfig, setNotificationConfig] = useState('Soon After Task Is Imported');
   const [priority, setPriority] = useState<Priority>('Medium');
   const [description, setDescription] = useState('');
@@ -47,10 +54,11 @@ export function LibraryTaskModal({ task, isOpen, onClose, onSave }: LibraryTaskM
     if (task) {
       setName(task.name);
       setAssignTo(task.department);
-      setDueDateType(task.dueDateConfig.type);
+      setDueDateType(task.dueDateConfig.type === 'on-hire' as any ? 'on-date' : task.dueDateConfig.type);
       setDueDays(task.dueDateConfig.days?.toString() || '');
       setDueUnit(task.dueDateConfig.unit || 'days');
       setDueDirection(task.dueDateConfig.direction || 'after');
+      setReferenceDate(task.dueDateConfig.referenceDate || 'hire-date');
       setPriority(task.priority || 'Medium');
       setDescription(task.description);
       setAttachments(task.attachments || []);
@@ -62,6 +70,7 @@ export function LibraryTaskModal({ task, isOpen, onClose, onSave }: LibraryTaskM
       setDueDays('');
       setDueUnit('days');
       setDueDirection('after');
+      setReferenceDate(availableReferenceDates[0] || 'hire-date');
       setNotificationConfig('Soon After Task Is Imported');
       setDescription('');
       setAttachments([]);
@@ -86,6 +95,7 @@ export function LibraryTaskModal({ task, isOpen, onClose, onSave }: LibraryTaskM
       days: dueDateType === 'relative' ? parseInt(dueDays) || 0 : undefined,
       unit: dueDateType === 'relative' ? dueUnit : undefined,
       direction: dueDateType === 'relative' ? dueDirection : undefined,
+      referenceDate: dueDateType !== 'none' ? referenceDate : undefined,
     };
 
     const taskData = {
@@ -184,13 +194,27 @@ export function LibraryTaskModal({ task, isOpen, onClose, onSave }: LibraryTaskM
                 <RadioGroupItem value="none" id="due-none" />
                 <Label htmlFor="due-none" className="font-normal">None</Label>
               </div>
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="on-hire" id="due-hire" />
-                <Label htmlFor="due-hire" className="font-normal">On Hire Date</Label>
+              <div className="flex items-center space-x-3 gap-2">
+                <RadioGroupItem value="on-date" id="due-on-date" />
+                <Label htmlFor="due-on-date" className="font-normal">On</Label>
+                <Select 
+                  value={referenceDate} 
+                  onValueChange={(v: ReferenceDate) => setReferenceDate(v)}
+                  disabled={dueDateType !== 'on-date' && dueDateType !== 'relative'}
+                >
+                  <SelectTrigger className="w-48 h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableReferenceDates.map((value) => (
+                      <SelectItem key={value} value={value}>{REFERENCE_DATE_LABELS[value]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-center space-x-3 gap-2 flex-wrap">
                 <RadioGroupItem value="relative" id="due-relative" />
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Input 
                     type="number" 
                     className="w-16 h-8 text-center" 
@@ -225,7 +249,7 @@ export function LibraryTaskModal({ task, isOpen, onClose, onSave }: LibraryTaskM
                       <SelectItem value="before">before</SelectItem>
                     </SelectContent>
                   </Select>
-                  <span className="text-sm text-muted-foreground">hire date</span>
+                  <span className="text-sm text-muted-foreground">{REFERENCE_DATE_LABELS[referenceDate]}</span>
                 </div>
               </div>
             </RadioGroup>
